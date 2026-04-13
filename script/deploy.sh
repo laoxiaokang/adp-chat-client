@@ -62,9 +62,11 @@ deploy_instance() {
     cd $INSTANCE_DIR/$INSTANCE
     check_env
     source .env
-    docker network create adp-chat-client-network-$INSTANCE
-    docker run --name adp-chat-client-db-$INSTANCE -d --restart=unless-stopped -e POSTGRES_PASSWORD=$PGSQL_PASSWORD -v ./volume/db:/var/lib/postgresql/data --network adp-chat-client-network-$INSTANCE postgres:17
-    docker run --name adp-chat-client-$INSTANCE -d --restart=unless-stopped -p $SERVER_HTTP_PORT:8000 --mount type=bind,source=./.env,target=/app/.env --network adp-chat-client-network-$INSTANCE adp-chat-client
+    # docker network create adp-chat-client-network-$INSTANCE
+    # docker run --name adp-chat-client-db-$INSTANCE -d --restart=unless-stopped -e POSTGRES_PASSWORD=$PGSQL_PASSWORD -v ./volume/db:/var/lib/postgresql/data --network adp-chat-client-network-$INSTANCE postgres:17
+    # docker run --name adp-chat-client-$INSTANCE -d --restart=unless-stopped -p $SERVER_HTTP_PORT:8000 --mount type=bind,source=./.env,target=/app/.env --network adp-chat-client-network-$INSTANCE adp-chat-client
+
+    docker run --name adp-chat-client-$INSTANCE -d -p $SERVER_HTTP_PORT:8000 -v ./.env:/app/.env  adp-chat-client   
 }
 
 ### 封装 debug 逻辑
