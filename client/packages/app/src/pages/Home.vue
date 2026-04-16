@@ -9,6 +9,12 @@ import { languageMap } from '@/i18n';
 import { getBaseURL } from '@/utils/url';
 import Logo from '@/assets/img/favicon.ico';
 
+interface SelectedAgentCard {
+    id: string;
+    title: string;
+    desc: string;
+}
+
 const router = useRouter()
 const uiStore = useUiStore()
 const route = useRoute()
@@ -17,6 +23,7 @@ const { t } = useI18n();
 // 当前选中的应用和会话（用于 URL 同步）
 const currentApplicationId = ref<string>('');
 const currentConversationId = ref<string>('');
+const selectedAgentCard = ref<SelectedAgentCard | null>(null);
 
 // API 配置 - 使用组件自动加载数据
 
@@ -141,20 +148,49 @@ const updateFromUrl = () => {
     } else {
         currentConversationId.value = route.params.conversationId as string;
     }
+
+    const queryCardId = typeof route.query.agentCardId === 'string' ? route.query.agentCardId : '';
+    const queryCardTitle = typeof route.query.agentCardTitle === 'string' ? route.query.agentCardTitle : '';
+    const queryCardDesc = typeof route.query.agentCardDesc === 'string' ? route.query.agentCardDesc : '';
+
+    if (queryCardId && queryCardTitle) {
+        selectedAgentCard.value = {
+            id: queryCardId,
+            title: queryCardTitle,
+            desc: queryCardDesc,
+        };
+    } else if (currentConversationId.value) {
+        selectedAgentCard.value = null;
+    }
 }
 
 // 监听路由参数变化
 watch(() => route.params.applicationId, () => updateFromUrl());
 watch(() => route.params.conversationId, () => updateFromUrl());
+watch(() => route.query.agentCardId, () => updateFromUrl());
+
+const getSelectedAgentCardQuery = () => {
+    if (!selectedAgentCard.value) {
+        return undefined;
+    }
+
+    return {
+        agentCardId: selectedAgentCard.value.id,
+        agentCardTitle: selectedAgentCard.value.title,
+        agentCardDesc: selectedAgentCard.value.desc,
+    };
+};
 
 // 更新 URL
-const updateUrl = () => {
+const updateUrl = (query?: Record<string, string>) => {
+    const nextQuery = query ?? getSelectedAgentCardQuery();
+
     if (currentConversationId.value === '') {
         if (currentApplicationId.value) {
-            router.push({ name: 'app', params: { applicationId: currentApplicationId.value } });
+            router.push({ name: 'app', params: { applicationId: currentApplicationId.value }, query: nextQuery });
         }
     } else {
-        router.push({ name: 'home', params: { conversationId: currentConversationId.value } });
+        router.push({ name: 'home', params: { conversationId: currentConversationId.value }, query: nextQuery });
     }
 }
 
@@ -162,7 +198,22 @@ const updateUrl = () => {
 const handleSelectApplication = (app: Application) => {
     currentApplicationId.value = app.ApplicationId || '';
     currentConversationId.value = '';
+    selectedAgentCard.value = null;
     updateUrl();
+};
+
+const handleSelectAgentCard = (card: SelectedAgentCard) => {
+    selectedAgentCard.value = card;
+    currentConversationId.value = '';
+    if (!currentApplicationId.value) {
+        return;
+    }
+    updateUrl({
+        agentCardId: card.id,
+        agentCardTitle: card.title,
+        agentCardDesc: card.desc,
+        sceneTs: String(Date.now()),
+    });
 };
 
 const handleSelectConversation = (conversation: ChatConversation) => {
@@ -173,6 +224,7 @@ const handleSelectConversation = (conversation: ChatConversation) => {
 
 const handleCreateConversation = () => {
     currentConversationId.value = '';
+    selectedAgentCard.value = null;
     updateUrl();
 };
 
@@ -196,8 +248,8 @@ const handleDataLoaded = (type: 'applications' | 'conversations' | 'chatList' | 
         // 如果 URL 没有指定应用，默认选中第一个
         if (!currentApplicationId.value && !currentConversationId.value) {
             currentApplicationId.value = data[0].ApplicationId;
+            updateUrl();
         }
-        updateUrl();
     }
 };
 
@@ -219,8 +271,10 @@ const handleConversationChange = (conversationId: string) => {
         :showCloseButton="false"
         :showOverlayButton="false"
         :logoUrl="Logo"
+        :logoTitle="t('project.projectName')"
         :currentApplicationId="currentApplicationId"
         :currentConversationId="currentConversationId"
+        :selectedAgentCard="selectedAgentCard"
         :aiWarningText="t('common.aiWarning')"
         :createConversationText="t('conversation.createConversation')"
         :sideI18n="sideI18n"
@@ -228,6 +282,7 @@ const handleConversationChange = (conversationId: string) => {
         :chatItemI18n="chatItemI18n"
         :senderI18n="senderI18n"
         @selectApplication="handleSelectApplication"
+        @selectAgentCard="handleSelectAgentCard"
         @selectConversation="handleSelectConversation"
         @createConversation="handleCreateConversation"
         @toggleTheme="handleToggleTheme"

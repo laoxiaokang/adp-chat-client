@@ -1,168 +1,510 @@
 <script setup lang="ts">
-/**
- * 智能体选择组件
- * 功能：展示当前智能体的欢迎语和推荐问题
- */
-import { ref, toRefs } from 'vue';
-import { Space as TSpace, CheckTag as TCheckTag, Avatar as TAvatar } from 'tdesign-vue-next';
+import { computed, ref, toRefs } from 'vue'
+import type { MobileProps } from '../../model/type'
+import { mobilePropsDefaults } from '../../model/type'
+import type { Application } from '../../model/application'
+import healthIcon from '../../assets/img/qa-ai.png'
+import medicineIcon from '../../assets/img/medicine-icon.png'
+import inquiryIcon from '../../assets/img/inquiry-icon.png'
+import reportIcon from '../../assets/img/report-icon.png'
+import doctorImage from '../../assets/img/ssdoctor.png'
+import questionIcon from '../../assets/img/question-icon.png'
+import ConversationTopActions from './ConversationTopActions.vue'
 
-// TSpace, TCheckTag, TAvatar 已导入，模板中使用对应组件
-import type { MobileProps } from '../../model/type';
-import { mobilePropsDefaults } from '../../model/type';
-interface Props extends MobileProps {
-  /** 当前应用头像 */
-  currentApplicationAvatar?: string;
-  /** 当前应用名称 */
-  currentApplicationName?: string;
-  /** 当前应用欢迎语 */
-  currentApplicationGreeting?: string;
-  /** 当前应用推荐问题列表 */
-  currentApplicationOpeningQuestions?: string[];
-  /** 是否显示遮罩层 */
-  isOverlay?: boolean;
+interface AgentCardItem {
+  id: string
+  title: string
+  desc: string
+  type: string
+  icon: string
+  applicationId?: string
 }
+
+interface SelectedAgentCard {
+  id: string
+  title: string
+  desc: string
+}
+
+interface Props extends MobileProps {
+  currentApplicationAvatar?: string
+  currentApplicationName?: string
+  currentApplicationGreeting?: string
+  currentApplicationOpeningQuestions?: string[]
+  applications?: Application[]
+  selectedAgentCard?: SelectedAgentCard | null
+  isOverlay?: boolean
+}
+
+const staticAgentCards: AgentCardItem[] = [
+  {
+    id: '1',
+    type: '1',
+    title: '健康咨询',
+    desc: '日常健康问题，随时在线答疑',
+    icon: healthIcon
+  },
+  {
+    id: '2',
+    type: '2',
+    title: '用药助手',
+    desc: '药物作用与服用方式快速查询',
+    icon: medicineIcon
+  },
+  {
+    id: '3',
+    type: '3',
+    title: '智能问病',
+    desc: '根据症状给出初步分析建议',
+    icon: inquiryIcon
+  },
+  {
+    id: '4',
+    type: '4',
+    title: '报告解读',
+    desc: '体检检查结果一眼看懂重点',
+    icon: reportIcon
+  }
+]
+
+const staticQuestions = [
+  '感冒了可以吃头孢吗？',
+  '体检发现血糖偏高怎么办？',
+  '经常感到胸闷气短是什么问题？'
+]
 
 const props = withDefaults(defineProps<Props>(), {
   currentApplicationAvatar: '',
   currentApplicationName: '',
   currentApplicationGreeting: '',
   currentApplicationOpeningQuestions: () => [],
+  applications: () => [],
+  selectedAgentCard: null,
   isOverlay: false,
-  ...mobilePropsDefaults,
-});
+  ...mobilePropsDefaults
+})
 
-// 解构 props 以便在模板中使用
-const {
-  currentApplicationAvatar,
-  currentApplicationName,
-  currentApplicationGreeting,
-  currentApplicationOpeningQuestions,
-  isOverlay,
-  isMobile
-} = toRefs(props);
+const { applications, selectedAgentCard, isMobile } = toRefs(props)
 
 const emit = defineEmits<{
-  (e: 'selectQuestion', question: string): void;
-}>();
+  (e: 'selectQuestion', question: string): void
+  (e: 'selectApplication', applicationId: string): void
+  (e: 'selectAgentCard', card: SelectedAgentCard): void
+  (e: 'createConversation'): void
+  (e: 'toggleSidebar'): void
+}>()
 
-// 用户选择的推荐问题
-const checkQuestion = ref('');
+const checkedQuestion = ref('')
 
-/**
- * 选择推荐问题
- */
+const agentCards = computed<AgentCardItem[]>(() => {
+  const fallbackAppId = applications.value[0]?.ApplicationId
+  return staticAgentCards.map((card, index) => ({
+    ...card,
+    applicationId: applications.value[index]?.ApplicationId || fallbackAppId
+  }))
+})
+
 const handleChooseQuestion = (value: string) => {
-  if (value == checkQuestion.value) {
-    checkQuestion.value = "";
-    emit('selectQuestion', "");
-  } else {
-    checkQuestion.value = value;
-    emit('selectQuestion', value);
+  if (checkedQuestion.value === value) {
+    checkedQuestion.value = ''
+    emit('selectQuestion', '')
+    return
   }
+  checkedQuestion.value = value
+  emit('selectQuestion', value)
+}
+
+const handleCreateConversation = () => {
+  checkedQuestion.value = ''
+  emit('createConversation')
+  emit('selectQuestion', '')
+}
+
+const handleToggleSidebar = () => {
+  emit('toggleSidebar')
+}
+
+const handleChooseAgentCard = (item: AgentCardItem) => {
+  if (!item.applicationId) {
+    return
+  }
+  emit('selectApplication', item.applicationId)
+  emit('selectAgentCard', {
+    id: item.type,
+    title: item.title,
+    desc: item.desc
+  })
 }
 </script>
 
 <template>
-  <div class="greeting-panel" :class="{ isMobile: isMobile }">
-    <TAvatar 
-      hideOnLoadFailed 
-      v-if="currentApplicationAvatar && !isOverlay" 
-      class="greet-avatar" 
-      size="64px" 
-      shape="round" 
-      :image="currentApplicationAvatar"
-      :imageProps="{
-        lazy: true,
-        loading: ''
-      }"
-    ></TAvatar>
-    <span v-if="currentApplicationName && !isOverlay" class="greet-name">{{ currentApplicationName }}</span>
-    <div class="greet-desc" v-if="currentApplicationGreeting">
-        {{ currentApplicationGreeting }}
+  <div class="welcome-container" :class="{ isMobile: isMobile }">
+    <ConversationTopActions
+      class="landing-actions"
+      @createConversation="handleCreateConversation"
+      @toggleSidebar="handleToggleSidebar"
+    />
+
+    <div class="hero-stack">
+      <section class="hero-card">
+        <div class="hero-copy">
+          <h1 class="hero-title">您好，我是SSdoctor!</h1>
+          <p class="hero-tagline">专业诊断AI健康伴侣</p>
+          <p class="hero-caption">全天在线，随时在线，像超级医生一样守护您</p>
+        </div>
+        <img class="hero-image" :src="doctorImage" alt="SSdoctor" />
+      </section>
+
+      <section class="service-panel">
+        <div class="service-grid">
+          <button
+            v-for="item in agentCards"
+            :key="item.id"
+            type="button"
+            class="service-card"
+            :class="{
+              disabled: !item.applicationId,
+              active:
+                selectedAgentCard?.id === item.id ||
+                selectedAgentCard?.id === item.type
+            }"
+            @click="handleChooseAgentCard(item)"
+          >
+            <div class="service-card__icon">
+              <img :src="item.icon" :alt="item.title" />
+            </div>
+            <span class="service-card__title">{{ item.title }}</span>
+            <span class="service-card__desc">{{ item.desc }}</span>
+          </button>
+        </div>
+      </section>
     </div>
-    <TSpace :direction="isMobile ? 'vertical' : 'horizontal'" gap="8" class="recommend-question-container" v-if="currentApplicationOpeningQuestions && currentApplicationOpeningQuestions.length > 0">
-        <TCheckTag theme="default" class="greet-tag" v-for="question in currentApplicationOpeningQuestions" :key="question" variant="outline"
-          @click="handleChooseQuestion(question)">
-          <span class="greet-tag-text">
-            {{ question }}
-          </span>
-        </TCheckTag>
-      </TSpace>
-    </div>
+
+    <section class="faq-card">
+      <div class="faq-header">
+        <img :src="questionIcon" alt="question" />
+        <span>常见问题</span>
+      </div>
+      <div class="faq-list">
+        <button
+          v-for="question in staticQuestions"
+          :key="question"
+          type="button"
+          class="faq-item"
+          :class="{ active: checkedQuestion === question }"
+          @click="handleChooseQuestion(question)"
+        >
+          {{ question }}
+        </button>
+      </div>
+    </section>
+  </div>
 </template>
 
 <style scoped>
-/* app展示内容详情 */
-.app-detail-container {
+.welcome-container {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-.greet-name{
-  color: var(--td-text-color-primary);
-  font-size: var(--td-font-size-title-large);
-  font-weight: 500;
-  margin-top:16px;
-}
-.greeting-panel {
-  display: flex;
-  height: 100%;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-.greet-avatar{
-  border-radius: var(--td-radius-large);
-}
-.isMobile .greet-desc{
-  background-color: transparent;
-  padding:0;
-  margin-top: var(--td-comp-margin-m);
-  color: var(--td-text-color-primary)
-}
-.greet-desc {
-  color: var(--td-text-color-secondary);
-  background-color: var(--td-bg-color-container-hover) ;
-  font-size: var(--td-font-size-title-small);
-  word-break: break-all;
-  margin-top: var(--td-size-8);
-  padding:var(--td-pop-padding-l) var(--td-pop-padding-xl);
-  border-radius: var(--td-radius-medium);
+  gap: 8px;
+  padding: 2px 0 12px;
 }
 
-.isMobile .greet-desc{
-  background: var(-----td-bg-color-container-hover, #F3F3F3);
-  color: var(-----td-text-color-secondary, #00000099);
-  padding: calc(var(--td-size-4) + var(--td-size-1)) var(--td-pop-padding-xl);
+.landing-actions {
+  margin-top: 24px;
 }
-.isMobile .greet-tag{
-  font-size: var(--td-font-size-body-small);
-  box-shadow: none;
+
+.hero-stack {
+  position: relative;
+  overflow: visible;
 }
-.greet-tag {
-  padding:var(--td-pop-padding-l) var(--td-pop-padding-xl);
-  height: var(--td-comp-size-m);
-  font-weight:500;
-  font-size: var(--td-font-size-link-small);
-  border-radius: var(--td-radius-medium);
-  box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.08), 0px 0px 6px rgba(18, 19, 25, 0.02), 0px 2px 12px rgba(18, 19, 25, 0.04);
+
+.hero-card {
+  position: relative;
+  min-height: 174px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.5),
+    rgba(228, 244, 255, 0.72)
+  );
+  padding: 18px 20px 60px;
+  overflow: visible;
+  box-shadow: 0 18px 40px rgba(105, 160, 194, 0.12);
+  margin-top: 48px;
 }
-.greet-tag-text{
+
+.hero-copy {
+  max-width: 58%;
+  color: #4c5766;
+}
+
+.hero-title {
+  margin: 0;
+  color: #3f4c5d;
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.hero-tagline {
+  margin: 10px 0 8px;
+  color: #687484;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.hero-caption {
+  margin: 0;
+  color: #8b97a8;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.hero-image {
+  position: absolute;
+  right: 10px;
+  bottom: 0px;
+  width: 154px;
+  max-width: 38%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.service-panel {
+  position: relative;
+  z-index: 1;
+  margin: -28px 12px 0;
+  padding: 14px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 16px 38px rgba(108, 162, 197, 0.2);
+}
+
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.service-card {
+  border: 0;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #f5f9ff 0%, #eef4fa 100%);
+  min-height: 132px;
+  padding: 14px 10px 12px;
   display: flex;
-  color: var(--td-brand-color);
+  flex-direction: column;
   align-items: center;
-  font-weight: 500;
+  justify-content: flex-start;
+  gap: 6px;
+  text-align: center;
+  color: #455365;
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    outline-color 0.18s ease;
+  outline: 2px solid transparent;
 }
-.greet-tag-text .star-icon{
-  margin-right: var(--td-comp-margin-xs);
+
+.service-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(129, 173, 203, 0.22);
 }
-.recommend-question-container {
-  margin-top: var(--td-size-6)
+
+.service-card.disabled {
+  opacity: 0.48;
+  cursor: not-allowed;
 }
-:deep(.recommend-question-container.t-space-vertical .t-space-item) {
+
+.service-card.active {
+  outline-color: #6bbaff;
+  box-shadow: 0 12px 24px rgba(94, 167, 230, 0.24);
+}
+
+.service-card__icon {
+  width: 60px;
+  height: 60px;
   display: flex;
+  align-items: center;
   justify-content: center;
+}
+
+.service-card__icon img {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.service-card__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #3d4a59;
+  line-height: 1.25;
+}
+
+.service-card__desc {
+  font-size: 11px;
+  line-height: 1.35;
+  color: #7f8c9d;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.faq-card {
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.2);
+  min-height: 196px;
+  padding: 16px 16px 18px;
+}
+
+.faq-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #43505f;
+}
+
+.faq-header img {
+  width: 16px;
+  height: 16px;
+}
+
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.faq-item {
+  border: 0;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 10px 14px;
+  color: #546171;
+  font-size: 14px;
+  line-height: 1.4;
+  text-align: left;
+  box-shadow: 0 8px 20px rgba(129, 173, 203, 0.08);
+  cursor: pointer;
+}
+
+.faq-item.active {
+  color: #2b8ff7;
+  box-shadow: inset 0 0 0 1.5px rgba(43, 143, 247, 0.28);
+}
+
+.isMobile.welcome-container {
+  max-width: 100%;
+  gap: 10px;
+  padding: 0 0 6px;
+}
+
+.isMobile .landing-actions {
+  margin-bottom: -4px;
+}
+
+.isMobile .landing-pill {
+  height: 34px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.isMobile .landing-pill__circle {
+  width: 16px;
+  height: 16px;
+  font-size: 12px;
+}
+
+.isMobile .hero-card {
+  min-height: 122px;
+  padding: 14px 14px 48px;
+  border-radius: 20px;
+}
+
+.isMobile .hero-copy {
+  max-width: 62%;
+}
+
+.isMobile .hero-title {
+  font-size: 16px;
+}
+
+.isMobile .hero-tagline {
+  margin: 6px 0 4px;
+  font-size: 12px;
+}
+
+.isMobile .hero-caption {
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.isMobile .hero-image {
+  right: 8px;
+  bottom: -12px;
+  width: 106px;
+  max-width: 38%;
+}
+
+.isMobile .service-panel {
+  margin: -14px 0 0;
+  padding: 10px;
+  border-radius: 18px;
+}
+
+.isMobile .service-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.isMobile .service-card {
+  min-height: 92px;
+  padding: 10px 8px 8px;
+  border-radius: 16px;
+  gap: 4px;
+}
+
+.isMobile .service-card__icon {
+  width: 38px;
+  height: 38px;
+}
+
+.isMobile .service-card__title {
+  font-size: 14px;
+}
+
+.isMobile .service-card__desc {
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.isMobile .faq-card {
+  min-height: auto;
+  padding: 12px 12px 14px;
+  border-radius: 18px;
+}
+
+.isMobile .faq-header {
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.isMobile .faq-item {
+  width: auto;
+  max-width: 100%;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.35;
 }
 </style>
