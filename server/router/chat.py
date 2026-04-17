@@ -40,11 +40,12 @@ class ChatMessageApi(HTTPMethodView):
         #     "userId": account_third_party.OpenId if account_third_party else str(account.Id),
         #     "name": account.Name if account else "",
         # })
-        args['CustomVariables']['userId']= account_third_party.OpenId if account_third_party else str(account.Id),
+        args['CustomVariables']['userId']= account_third_party.OpenId if account_third_party else str(account.Id)
+        logging.info(f"userId: {args['CustomVariables']['userId']}")
         logging.info(f"[ChatMessageApi] ApplicationId: {application_id},\n\
             CustomVariables: {args['CustomVariables']},\n\
             vendor_app: {vendor_app}")
-
+        logging.info(f"ChatMessageApi: {args}")
         async def streaming_fn(response):
             async for data in CoreChat.message(
                 vendor_app,
