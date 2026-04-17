@@ -260,6 +260,9 @@ const handleUserClick = () => {
 :deep(.custome-drawer .t-drawer__content-wrapper){
     box-shadow: none;
 }
+:deep(.custome-drawer .t-drawer__content) {
+    background: linear-gradient(180deg, #e6f0ff 0%, #f0f5ff 100%);
+}
 :deep(.t-drawer__header ){
     border-bottom: none !important;
 }
@@ -268,5 +271,30 @@ const handleUserClick = () => {
 }
 :deep(.t-drawer__content-wrapper){
 width: 100% !important;
+}
+
+/* 对齐旧项目：历史项卡片视觉 */
+:deep(.history-item) {
+    background: #fff;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    padding: 12px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+    display: flex;
+    align-items: flex-start;
+    height: auto;
+    line-height: 1.5;
+}
+
+:deep(.history-item:hover),
+:deep(.history-item.active) {
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+:deep(.history-header) {
+    margin-bottom: 8px;
+    padding-left: 4px;
+    font-weight: 500;
 }
 </style>

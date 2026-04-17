@@ -352,111 +352,137 @@ const referenceDialogTitle = computed(() => {
             </div>
             <div v-else>
                 <!-- 普通用户消息 -->
-                <div v-if="isFromSelf" class="user-message">
-                    <MdContent 
-                        :content="displayText" 
-                        role="user" 
-                        :theme="theme" 
+                <div v-if="isFromSelf" class="user-message-shell">
+                    <div class="user-message">
+                        <MdContent 
+                            :content="displayText" 
+                            role="user" 
+                            :theme="theme" 
+                            :quoteInfos="quoteInfos"
+                            :language="language"
+                            :recordId="item.RecordId"
+                            @widgetEvent="handleWidgetEvent"
+                        />
+                    </div>
+                    <div v-if="showActions && !isMobile" class="user-actions">
+                        <Tooltip :content="i18n.copy" destroyOnClose showArrow theme="default">
+                            <button type="button" class="action-pill action-pill--user" @click="(e: any) => copyContent(e, displayText, 'user')">
+                                <CustomizedIcon size="s" class="action-pill__icon" name="copy" :theme="theme" />
+                            </button>
+                        </Tooltip>
+                        <Tooltip :content="i18n.share" destroyOnClose showArrow theme="default">
+                            <button type="button" class="action-pill action-pill--user" @click="share(item)">
+                                <CustomizedIcon size="s" class="action-pill__icon" name="share" :theme="theme" />
+                            </button>
+                        </Tooltip>
+                    </div>
+                </div>
+                <div v-else class="assistant-card">
+                    <MdContent
+                        :content="displayText"
+                        role="assistant"
+                        :theme="theme"
                         :quoteInfos="quoteInfos"
                         :language="language"
                         :recordId="item.RecordId"
+                        :disable="!isLastMsg"
                         @widgetEvent="handleWidgetEvent"
                     />
-                    <CustomizedIcon :size="isMobile ? 'm' : 's'" v-if="showActions && !isMobile" class="control-icon copy-icon" name="copy" :theme="theme"
-                        @click="(e: any) => copyContent(e, displayText, 'user')" />
-                    <CustomizedIcon :size="isMobile ? 'm' : 's'" v-if="showActions && !isMobile" class="control-icon share-icon" name="share" :theme="theme"
-                        @click="share(item)" />
-                </div>
-                <MdContent 
-                    v-else 
-                    :content="displayText" 
-                    role="assistant" 
-                    :theme="theme" 
-                    :quoteInfos="quoteInfos"
-                    :language="language"
-                    :recordId="item.RecordId"
-                    :disable="!isLastMsg"
-                    @widgetEvent="handleWidgetEvent"
-                />
-                <OptionCard v-if="optionCards && optionCards.length" :cards="optionCards" :sendMessage="handleSendMessage" />
-                <div class="references-container"
-                    v-if="references && references.length > 0 && isFinal">
-                    <span class="title">{{ i18n.references }}: </span>
-                    <ol class="reference-list">
-                        <li
-                            v-for="(reference, idx) in references"
-                            :key="`${getReferenceId(reference) || getReferenceUrl(reference) || getReferenceTitle(reference) || idx}-${idx}`"
-                            class="reference-list__item"
-                        >
-                            <button
-                                v-if="isSliceReference(reference)"
-                                type="button"
-                                class="reference-slice__trigger"
-                                @click="openReferenceDialog(reference)"
+                    <OptionCard v-if="optionCards && optionCards.length" :cards="optionCards" :sendMessage="handleSendMessage" />
+                    <div class="references-container"
+                        v-if="references && references.length > 0 && isFinal">
+                        <span class="title">{{ i18n.references }}: </span>
+                        <ol class="reference-list">
+                            <li
+                                v-for="(reference, idx) in references"
+                                :key="`${getReferenceId(reference) || getReferenceUrl(reference) || getReferenceTitle(reference) || idx}-${idx}`"
+                                class="reference-list__item"
                             >
-                                <div class="reference-slice__header">
-                                    <span class="reference-slice__name">{{ getReferenceTitle(reference) }}</span>
-                                </div>
-                                <div v-if="getReferenceMeta(reference)" class="reference-slice__meta">
+                                <button
+                                    v-if="isSliceReference(reference)"
+                                    type="button"
+                                    class="reference-slice__trigger"
+                                    @click="openReferenceDialog(reference)"
+                                >
+                                    <div class="reference-slice__header">
+                                        <span class="reference-slice__name">{{ getReferenceTitle(reference) }}</span>
+                                    </div>
+                                    <div v-if="getReferenceMeta(reference)" class="reference-slice__meta">
+                                        {{ getReferenceMeta(reference) }}
+                                    </div>
+                                    <div class="reference-slice__preview">
+                                        {{ getReferencePreview(reference) }}
+                                    </div>
+                                </button>
+                                <TLink
+                                    v-else-if="getReferenceUrl(reference)"
+                                    class="reference-link"
+                                    theme="primary"
+                                    :href="getReferenceUrl(reference)"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    {{ getReferenceTitle(reference) }}
+                                </TLink>
+                                <span v-else class="reference-link">
+                                    {{ getReferenceTitle(reference) }}
+                                </span>
+                                <div v-if="getReferenceMeta(reference)" class="reference-link__meta">
                                     {{ getReferenceMeta(reference) }}
                                 </div>
-                                <div class="reference-slice__preview">
-                                    {{ getReferencePreview(reference) }}
-                                </div>
+                            </li>
+                        </ol>
+                    </div>
+                    <div v-if="showActions && (!isStreamLoad || !isLastMsg)" class="assistant-actions" :class="{ isMobile: isMobile }">
+                        <Tooltip :content="i18n.copy" destroyOnClose showArrow theme="default">
+                            <button type="button" class="action-pill" @click="(e: any) => copyContent(e, displayText, 'assistant')">
+                                <CustomizedIcon size="s" class="action-pill__icon" name="copy" :theme="theme" />
                             </button>
-                            <TLink
-                                v-else-if="getReferenceUrl(reference)"
-                                class="reference-link"
-                                theme="primary"
-                                :href="getReferenceUrl(reference)"
-                                target="_blank"
-                                rel="noopener noreferrer"
+                        </Tooltip>
+                        <Tooltip :content="i18n.replay" destroyOnClose showArrow theme="default">
+                            <button type="button" class="action-pill" @click="emit('resend', item.RelatedRecordId)">
+                                <CustomizedIcon size="s" class="action-pill__icon" name="refresh" :theme="theme" />
+                            </button>
+                        </Tooltip>
+                        <Tooltip :content="i18n.share" destroyOnClose showArrow theme="default">
+                            <button type="button" class="action-pill" @click="share(item)">
+                                <CustomizedIcon size="s" class="action-pill__icon" name="share" :theme="theme" />
+                            </button>
+                        </Tooltip>
+                        <Tooltip :content="i18n.good" destroyOnClose showArrow theme="default">
+                            <button
+                                type="button"
+                                class="action-pill"
+                                :class="{ disabled: isRated() && recordScore !== ScoreValue.Like, 'not-allowed': isRated() || !canRate }"
+                                @click="rate(item, ScoreValue.Like)"
                             >
-                                {{ getReferenceTitle(reference) }}
-                            </TLink>
-                            <span v-else class="reference-link">
-                                {{ getReferenceTitle(reference) }}
-                            </span>
-                            <div v-if="getReferenceMeta(reference)" class="reference-link__meta">
-                                {{ getReferenceMeta(reference) }}
-                            </div>
-                        </li>
-                    </ol>
+                                <CustomizedIcon
+                                    size="s"
+                                    class="action-pill__icon"
+                                    :name="recordScore === ScoreValue.Like ? 'thumbs_up_active' : 'thumbs_up'"
+                                    :nativeIcon="record.Score === ScoreValue.Like"
+                                    :theme="theme"
+                                />
+                            </button>
+                        </Tooltip>
+                        <Tooltip :content="i18n.bad" destroyOnClose showArrow theme="default">
+                            <button
+                                type="button"
+                                class="action-pill"
+                                :class="{ disabled: isRated() && recordScore !== ScoreValue.Dislike, 'not-allowed': isRated() || !canRate }"
+                                @click="rate(item, ScoreValue.Dislike)"
+                            >
+                                <CustomizedIcon
+                                    size="s"
+                                    class="action-pill__icon"
+                                    :name="recordScore === ScoreValue.Dislike ? 'thumbs_down_active' : 'thumbs_down'"
+                                    :nativeIcon="record.Score === ScoreValue.Dislike"
+                                    :theme="theme"
+                                />
+                            </button>
+                        </Tooltip>
+                    </div>
                 </div>
-            </div>
-        </template>
-        <!-- 操作按钮插槽 -->
-        <template #actions v-if="showActions" >
-            <div v-show="!isStreamLoad || !isLastMsg" class="actions-container" :class="{ isMobile: isMobile }">
-                <Tooltip :content="i18n.copy" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon :size="isMobile ? 'm' : 's'" class="control-icon copy-icon icon" name="copy" :theme="theme"
-                        @click="(e: any) => copyContent(e, displayText, 'assistant')" />
-                </Tooltip>
-                <Tooltip :content="i18n.replay" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon :size="isMobile ? 'm' : 's'" class="control-icon icon" name="refresh" :theme="theme"
-                        @click="emit('resend', item.RelatedRecordId)" />
-                </Tooltip>
-                <Tooltip :content="i18n.share" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon :size="isMobile ? 'm' : 's'" class="control-icon share-icon icon" name="share" :theme="theme" @click="share(item)" />
-                </Tooltip>
-                <Tooltip :content="i18n.good" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon
-                        :size="isMobile ? 'm' : 's'"
-                        :class="{ disabled: isRated() && recordScore !== ScoreValue.Like, 'not-allowed': isRated() || !canRate }"
-                        class="control-icon icon"
-                        :name="recordScore === ScoreValue.Like ? 'thumbs_up_active' : 'thumbs_up'"
-                        :nativeIcon="record.Score === ScoreValue.Like"
-                        :theme="theme" @click="rate(item, ScoreValue.Like)" />
-                </Tooltip>
-                <Tooltip :content="i18n.bad" destroyOnClose showArrow theme="default">
-                    <CustomizedIcon
-                        :size="isMobile ? 'm' : 's'"
-                        :class="{ disabled: isRated() && recordScore !== ScoreValue.Dislike, 'not-allowed': isRated() || !canRate }"
-                        class="control-icon icon"
-                        :name="recordScore === ScoreValue.Dislike ? 'thumbs_down_active' : 'thumbs_down'"
-                        :nativeIcon="record.Score === ScoreValue.Dislike"
-                        :theme="theme" @click="rate(item, ScoreValue.Dislike)" />
-                </Tooltip>
             </div>
         </template>
     </TChatItem>
@@ -504,12 +530,40 @@ const referenceDialogTitle = computed(() => {
     align-items: center;
 }
 
-/* 用户消息的复制和分享图标样式 */
-.user-message .copy-icon,
-.user-message .share-icon {
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    cursor: pointer;
+/* 用户消息气泡样式（旧版） */
+.user-message-shell {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.user-message {
+    position: relative;
+    width: fit-content;
+    max-width: min(100%, 680px);
+    padding: 10px 14px;
+    border-radius: 18px 18px 6px 18px;
+    background: linear-gradient(135deg, #54b6ff 0%, #5a88ff 100%);
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    box-shadow: 0 10px 24px rgba(78, 138, 231, 0.18);
+}
+
+.user-message :deep(.markdown-body),
+.user-message :deep(.markdown-body p),
+.user-message :deep(.markdown-body li),
+.user-message :deep(.markdown-body span) {
+    color: #fff !important;
+}
+
+.assistant-card {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 8px 18px 18px 18px;
+    padding: 16px;
+    border: 1px solid rgba(180, 210, 229, 0.42);
+    box-shadow: 0 14px 32px rgba(117, 167, 196, 0.14);
 }
 
 .check-circle {
@@ -517,42 +571,69 @@ const referenceDialogTitle = computed(() => {
     font-size: var(--td-font-size-title-large);
     margin-right: var(--td-comp-margin-s);
 }
-.control-icon{
-    padding:var(--td-comp-paddingLR-xxs); 
-    margin-right: var(--td-comp-margin-s); 
-}
-.copy-icon{
-    padding-left: 0;
-}
-.icon.disabled {
+.icon.disabled,
+.action-pill.disabled {
     opacity: 0.25;
     cursor: not-allowed;
 }
-.icon.not-allowed {
+.icon.not-allowed,
+.action-pill.not-allowed {
     cursor: not-allowed;
 }
 
-/* 用户消息图标悬停效果 */
-.user-message .copy-icon:hover,
-.user-message .share-icon:hover,
-.icon:hover {
+/* 图标悬停效果 */
+.icon:hover,
+.action-pill:hover .action-pill__icon {
     color: var(--td-brand-color);
 }
 
-.user-message:hover .copy-icon,
-.user-message:hover .share-icon {
-    opacity: 1;
-}
-
-/* 操作按钮容器样式 */
-.actions-container {
+.user-actions {
     display: flex;
     align-items: center;
-    list-style: none;
-    padding: var(--td-pop-padding-s);
-    overflow: hidden;
-    position: relative;
-    padding-left: 0;
+    gap: 6px;
+}
+
+.assistant-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(176, 208, 228, 0.46);
+}
+
+.action-pill {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 999px;
+    background: #f2f8fc;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    cursor: pointer;
+    transition: background-color 0.18s ease, transform 0.18s ease;
+}
+
+.action-pill:hover {
+    background: #e8f3fb;
+    transform: translateY(-1px);
+}
+
+.action-pill--user {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.action-pill--user:hover {
+    background: rgba(255, 255, 255, 0.32);
+}
+
+.action-pill__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 .collapsed-thinking-text{
     color: var(--td-text-color-placeholder);
@@ -574,22 +655,33 @@ const referenceDialogTitle = computed(() => {
 }
 
 .references-container {
-    margin: 0px var(--td-comp-margin-l) var(--td-comp-margin-xl) var(--td-comp-margin-l);
+    margin-top: 12px;
+    background: #f4f9fc;
+    border-radius: 12px;
+    padding: 12px;
 }
 
 .references-container .title {
     color: var(--td-text-color-secondary);
     display: inline-block;
-    margin-bottom: var(--td-comp-margin-s);
+    margin-bottom: 6px;
+    font-weight: 500;
 }
 
 .reference-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
     margin: 0;
-    padding-left: var(--td-comp-margin-l);
+    padding: 0;
+    list-style: none;
 }
 
-.reference-list__item + .reference-list__item {
-    margin-top: var(--td-comp-margin-s);
+.reference-list__item {
+    background: #fff;
+    border: 1px solid #dfebf2;
+    border-radius: 8px;
+    padding: 4px 10px;
 }
 
 .reference-slice__trigger {
@@ -669,17 +761,25 @@ const referenceDialogTitle = computed(() => {
     padding: 0;
     margin-left: 0;
 }
-.isMobile .share-icon{
-    position: absolute;
-    right: 0;
-    margin-right: 0;
-}
-.isMobile .control-icon{
-    border: 1px solid var(--td-component-border);
-    border-radius: var(--td-radius-medium);
-    padding: calc(var(--td-pop-padding-m) - 1px);
-}
 .chat-item__container.loading{
     padding-bottom: 32px;
+}
+
+.isMobile .assistant-card {
+    padding: 14px;
+}
+
+.isMobile .user-message {
+    max-width: min(100%, 88vw);
+    padding: 9px 12px;
+}
+
+.isMobile .assistant-actions {
+    gap: 6px;
+}
+
+.isMobile .action-pill {
+    width: 26px;
+    height: 26px;
 }
 </style>

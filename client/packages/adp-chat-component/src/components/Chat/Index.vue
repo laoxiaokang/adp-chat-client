@@ -6,20 +6,31 @@
         <TChat ref="chatRef" :class="{ isChatting: isChatting }" :reverse="false" style="height: 100%" :clear-history="false"
             @scroll="handleChatScroll" @clear="clearConfirm">
             <!-- 默认问题提示 -->
-            <template v-if="chatList.length <= 0 && !messageLoading && !chatId">
+            <template v-if="isLanding">
                 <AppType
                     :currentApplicationAvatar="currentApplicationAvatar"
                     :currentApplicationName="currentApplicationName"
                     :currentApplicationGreeting="currentApplicationGreeting"
                     :currentApplicationOpeningQuestions="currentApplicationOpeningQuestions"
+                    :applications="applications"
+                    :selectedAgentCard="selectedAgentCard"
                     :isMobile="isMobile"
                     :isOverlay="isOverlay"
                     @selectQuestion="getDefaultQuestion"
+                    @selectApplication="handleSelectApplication"
+                    @selectAgentCard="handleSelectAgentCard"
+                    @createConversation="handleCreateConversation"
+                    @toggleSidebar="handleToggleSidebar"
                 />
             </template>
             <!-- 聊天消息列表 -->
             <template v-else>
                 <div class="content selectable" :class="{ isMobile: isMobile, isFull: chatList.length <= 0 }">
+                    <ConversationTopActions
+                        class="chat-page-actions"
+                        @createConversation="handleCreateConversation"
+                        @toggleSidebar="handleToggleSidebar"
+                    />
                     <InfiniteLoading v-if="chatId" :identifier="chatId" direction="top" @infinite="infiniteHandler">
                         <template #spinner>
                             <div>
@@ -116,6 +127,8 @@
                     :useInternalRecord="useInternalRecord"
                     :asrUrlApi="asrUrlApi"
                     :enableVoiceInput="props.enableVoiceInput"
+                    :showLandingPrompts="isLanding"
+                    :landingPrompts="landingPrompts"
                     @stop="onStop"
                     @send="handleSend"
                     @uploadFile="handleUploadFile"
@@ -136,15 +149,23 @@ import { Checkbox, Loading as TLoading, Card as TCard, Checkbox as TCheckbox, Di
 import type { Record } from '../../model/chat-v2'
 import { ScoreValue } from '../../model/chat-v2'
 import type { FileProps } from '../../model/file';
+import type { Application } from '../../model/application';
 import { MessageCode } from '../../model/messages';
 import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n } from '../../model/type'
 import { chatRelatedPropsDefaults, defaultChatI18n, defaultChatI18nEn, defaultChatItemI18n, defaultChatItemI18nEn, defaultSenderI18n, defaultSenderI18nEn } from '../../model/type'
 
 import AppType from './AppType.vue'
+import ConversationTopActions from './ConversationTopActions.vue'
 import Sender from './Sender.vue'
 import BackToBottom from './BackToBottom.vue'
 import ChatItem from './ChatItem.vue'
 import CustomizedIcon from '../CustomizedIcon.vue';
+
+interface SelectedAgentCard {
+    id: string;
+    title: string;
+    desc: string;
+}
 
 export interface Props extends ChatRelatedProps {
     /** 当前会话ID */
@@ -163,6 +184,10 @@ export interface Props extends ChatRelatedProps {
     currentApplicationGreeting?: string;
     /** 当前应用推荐问题列表 */
     currentApplicationOpeningQuestions?: string[];
+    /** 应用列表 */
+    applications?: Application[];
+    /** 当前选中的卡片信息 */
+    selectedAgentCard?: SelectedAgentCard | null;
     /** 国际化文本 */
     i18n?: ChatI18n;
     /** ChatItem 国际化文本 */
@@ -191,6 +216,8 @@ const props = withDefaults(defineProps<Props>(), {
     currentApplicationName: '',
     currentApplicationGreeting: '',
     currentApplicationOpeningQuestions: () => [],
+    applications: () => [],
+    selectedAgentCard: null,
     i18n: () => ({}),
     chatItemI18n: () => ({}),
     senderI18n: () => ({}),
@@ -208,6 +235,8 @@ const {
     currentApplicationName,
     currentApplicationGreeting,
     currentApplicationOpeningQuestions,
+    applications,
+    selectedAgentCard,
     currentApplicationId,
     isChatting,
     isOverlay,
@@ -233,6 +262,12 @@ const senderI18n = computed(() => {
     return { ...defaults, ...props.senderI18n };
 });
 
+const landingPrompts = [
+    '上传体检报告',
+    '解读我的报告',
+    '心悸怎么缓解',
+];
+
 const emit = defineEmits<{
     (e: 'send', query: string, fileList: FileProps[], conversationId: string, applicationId: string): void;
     (e: 'stop'): void;
@@ -241,10 +276,14 @@ const emit = defineEmits<{
     (e: 'share', conversationId: string, applicationId: string, recordIds: string[]): void;
     (e: 'copy', rowtext: string | undefined, content: string | undefined, type: string): void;
     (e: 'uploadFile', files: File[]): void;
+    (e: 'toggleSidebar'): void;
+    (e: 'createConversation'): void;
     (e: 'startRecord'): void;
     (e: 'stopRecord'): void;
     (e: 'message', code: MessageCode, message: string): void;
     (e: 'conversationChange', conversationId: string): void;
+    (e: 'selectApplication', applicationId: string): void;
+    (e: 'selectAgentCard', card: SelectedAgentCard): void;
     /** widget 事件（用于与 SSE/对话流交互） */
     (e: 'widgetEvent', event: CustomEvent, widgetRunId: string, widgetId: string, recordId: string): void;
 }>();
@@ -317,6 +356,10 @@ const lastScrollTop = ref(0)
  */
 const hasUserScrolled = ref(false)
 
+const isLanding = computed(() => {
+    return chatList.value.length <= 0 && !messageLoading.value && !chatId.value;
+});
+
 /**
  * 滚动到底部
  */
@@ -335,6 +378,26 @@ const handleClickBackToBottom = () => {
     hasUserScrolled.value = false;
     backToBottom()
 }
+
+const handleSelectApplication = (applicationId: string) => {
+    if (!applicationId) {
+        return;
+    }
+    emit('selectApplication', applicationId);
+};
+
+const handleSelectAgentCard = (card: SelectedAgentCard) => {
+    emit('selectAgentCard', card);
+};
+
+const handleToggleSidebar = () => {
+    emit('toggleSidebar');
+};
+
+const handleCreateConversation = () => {
+    senderRef.value?.changeSenderVal('', []);
+    emit('createConversation');
+};
 
 /**
  * 聊天滚动事件
@@ -396,7 +459,7 @@ onUnmounted(() => {
  * 设置默认问题
  */
 const getDefaultQuestion = (value: string) => {
-    inputEnter(value)
+    senderRef.value?.changeSenderVal(value, []);
 }
 
 /**
@@ -652,6 +715,11 @@ defineExpose({
     align-items: self-start;
 }
 
+.chat-page-actions {
+    width: 100%;
+    margin: 0 0 12px;
+}
+
 .share-setting-container {
     z-index: 10;
     position: absolute;
@@ -756,6 +824,10 @@ defineExpose({
     width: 100%;
     max-width: calc(800px + var(--td-size-4));
     margin: 0 auto;
+}
+
+:deep(.t-chat__list .content.isMobile .chat-page-actions) {
+    margin-bottom: 10px;
 }
 
 :deep(.share-setting-content .t-card__body) {

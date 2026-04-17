@@ -188,12 +188,23 @@ useWidgetInit({
 }
 
 .md-content-container.user {
-  border-radius: var(--td-radius-large);
-  background-color: var(--td-brand-color-light);
+  border-radius: 0;
+  background-color: transparent !important;
+  padding: 0;
 }
 
 .user .md-content {
-  padding: 0 var(--td-comp-paddingLR-s);
+  padding: 0;
+}
+
+.md-content-container.user :deep(.md-content),
+.md-content-container.user :deep(.markdown-body),
+.md-content-container.user :deep(p),
+.md-content-container.user :deep(ul),
+.md-content-container.user :deep(ol),
+.md-content-container.user :deep(pre),
+.md-content-container.user :deep(blockquote) {
+  background: transparent !important;
 }
 
 .md-content-container.system {

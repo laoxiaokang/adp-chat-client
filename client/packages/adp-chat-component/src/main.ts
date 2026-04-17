@@ -62,7 +62,7 @@ function init(container?: string, config?: ChatConfig) {
   const propsRef = ref<Record<string, any>>({
     container: container,
     theme: 'light' as const,
-    logoTitle: 'ADP Chat',
+    logoTitle: '双百工程',
     isOverlay: false,
     ...config
   })
