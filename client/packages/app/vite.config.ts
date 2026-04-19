@@ -3,6 +3,7 @@ import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import { visualizer } from 'rollup-plugin-visualizer'
+import { VitePWA } from 'vite-plugin-pwa'
 import path from 'node:path'
 import { existsSync, readFileSync } from 'node:fs'
 
@@ -55,6 +56,56 @@ export default defineConfig(({ mode }) => {
         filename: 'dist/stats.html',
         gzipSize: true,
         brotliSize: true,
+      }),
+      VitePWA({
+        registerType: 'prompt',
+        injectRegister: false,
+        manifest: {
+          id: './',
+          name: '双百工程',
+          short_name: '双百工程',
+          description: '双百工程智能问答演示应用',
+          start_url: './',
+          scope: './',
+          display: 'standalone',
+          theme_color: '#0b6bff',
+          background_color: '#eef5ff',
+          lang: 'zh-CN',
+          icons: [
+            {
+              src: 'pwa-192x192.png',
+              sizes: '192x192',
+              type: 'image/png',
+            },
+            {
+              src: 'pwa-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+            },
+            {
+              src: 'pwa-maskable-192x192.png',
+              sizes: '192x192',
+              type: 'image/png',
+              purpose: 'maskable',
+            },
+            {
+              src: 'pwa-maskable-512x512.png',
+              sizes: '512x512',
+              type: 'image/png',
+              purpose: 'maskable',
+            },
+          ],
+        },
+        workbox: {
+          cleanupOutdatedCaches: true,
+          navigateFallback: 'index.html',
+          maximumFileSizeToCacheInBytes: 7 * 1024 * 1024,
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
+          globIgnores: ['**/assets/adp-widget-*.js'],
+        },
+        devOptions: {
+          enabled: false,
+        },
       }),
       // 开发时服务 widget 静态资源（widget 只存放于 adp-chat-component 中）
       serveWidgetPlugin(),

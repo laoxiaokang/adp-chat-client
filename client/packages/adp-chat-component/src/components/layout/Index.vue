@@ -64,6 +64,7 @@ import {
 
 interface SelectedAgentCard {
     id: string;
+    agentType: string;
     title: string;
     desc: string;
 }
@@ -344,7 +345,7 @@ const mergedSenderI18n = computed(() => {
 
 const selectedAgentCardVariables = computed(() => {
     return {
-        AgentType: props.selectedAgentCard?.id || '',
+        AgentType: props.selectedAgentCard?.agentType || props.selectedAgentCard?.id || '',
     };
 });
 

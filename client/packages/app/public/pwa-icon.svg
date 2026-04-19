@@ -1,0 +1,51 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="64" y1="56" x2="444" y2="464" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B6BFF" />
+      <stop offset="0.52" stop-color="#1292FF" />
+      <stop offset="1" stop-color="#22D5C3" />
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(392 116) rotate(144.881) scale(189.771)">
+      <stop stop-color="#FFFFFF" stop-opacity="0.84" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="logoA" x1="0" y1="12.604" x2="18.8992" y2="12.2262" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0062FF" />
+      <stop offset="0.26" stop-color="#006AFF" />
+      <stop offset="0.68" stop-color="#0081FF" />
+      <stop offset="1" stop-color="#0097FF" />
+    </linearGradient>
+    <linearGradient id="logoB" x1="16.6671" y1="18.4574" x2="8.27937" y2="55.5334" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0097FF" />
+      <stop offset="0.32" stop-color="#0081FF" />
+      <stop offset="0.74" stop-color="#006AFF" />
+      <stop offset="1" stop-color="#0062FF" />
+    </linearGradient>
+    <linearGradient id="logoC" x1="-0.221094" y1="69.2646" x2="18.4796" y2="54.0255" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#009EFF" />
+      <stop offset="0.31" stop-color="#00A3FF" />
+      <stop offset="0.71" stop-color="#00B3FF" />
+      <stop offset="1" stop-color="#00C3FF" />
+    </linearGradient>
+    <linearGradient id="logoD" x1="16.926" y1="12.604" x2="66.0414" y2="11.6218" gradientUnits="userSpaceOnUse">
+      <stop offset="0.03" stop-color="#ECFFFE" />
+      <stop offset="0.19" stop-color="#AFF1D9" />
+      <stop offset="0.34" stop-color="#79E5B9" />
+      <stop offset="0.49" stop-color="#4EDB9F" />
+      <stop offset="0.63" stop-color="#2CD48A" />
+      <stop offset="0.77" stop-color="#14CE7C" />
+      <stop offset="0.89" stop-color="#05CB73" />
+      <stop offset="1" stop-color="#00CA70" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="132" fill="url(#bg)" />
+  <circle cx="392" cy="116" r="136" fill="url(#glow)" />
+  <circle cx="256" cy="256" r="156" fill="#FFFFFF" fill-opacity="0.18" />
+  <circle cx="256" cy="256" r="155" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="2" />
+  <g transform="translate(113 119) scale(10.1826)">
+    <path d="M9.14038 8.25177H3.53919C3.45719 8.25173 3.37619 8.23372 3.30188 8.19901C3.22758 8.16431 3.16179 8.11375 3.10912 8.05089C3.05646 7.98803 3.01819 7.91439 2.99703 7.83516C2.97587 7.75593 2.97234 7.67303 2.98665 7.59228L3.87785 2.44561C3.90079 2.32052 3.96685 2.20742 4.06455 2.12601C4.16225 2.04459 4.2854 2.00001 4.41258 2.00001H10.2054L9.14038 8.25177Z" fill="url(#logoA)" />
+    <path d="M13.0301 21.4727H6.77832L9.11772 8.2473H15.3695L13.0301 21.4727Z" fill="url(#logoB)" />
+    <path d="M11.4707 27.7245H6.34183C6.26051 27.7236 6.18034 27.7051 6.10678 27.6704C6.03322 27.6358 5.96801 27.5856 5.91557 27.5235C5.86313 27.4613 5.82471 27.3886 5.80292 27.3102C5.78113 27.2319 5.77648 27.1497 5.78929 27.0694L6.78297 21.4861H13.0214L11.9965 27.2789C11.9738 27.4025 11.9091 27.5144 11.8132 27.5956C11.7174 27.6769 11.5963 27.7224 11.4707 27.7245Z" fill="url(#logoC)" />
+    <path d="M26.666 8.25176H9.14062L10.2457 2.01337H27.5795C27.6613 2.01417 27.7419 2.03268 27.8158 2.06763C27.8898 2.10258 27.9552 2.15313 28.0077 2.21581C28.0603 2.27849 28.0986 2.35179 28.12 2.43069C28.1415 2.50959 28.1456 2.59221 28.1321 2.67285L27.2186 7.81953C27.1941 7.94607 27.1246 8.0595 27.0231 8.13892C26.9216 8.21834 26.7948 8.25841 26.666 8.25176V8.25176Z" fill="url(#logoD)" />
+  </g>
+</svg>

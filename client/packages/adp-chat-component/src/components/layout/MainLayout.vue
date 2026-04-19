@@ -17,6 +17,7 @@ import { chatRelatedPropsDefaults, defaultChatI18n } from '../../model/type';
 
 interface SelectedAgentCard {
     id: string;
+    agentType: string;
     title: string;
     desc: string;
 }
