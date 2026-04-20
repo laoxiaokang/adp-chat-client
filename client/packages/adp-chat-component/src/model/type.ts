@@ -22,6 +22,19 @@ export interface UserInfo {
   name?: string
 }
 
+/** 当前选中的智能体卡片 */
+export interface SelectedAgentCard {
+  id: string
+  agentType: string
+  title: string
+  desc: string
+}
+
+/** 发送器中的智能体列表项 */
+export interface SenderAgentListItem extends SelectedAgentCard {
+  applicationId?: string
+}
+
 // ============================================================
 // 公共 Props 接口 - 用于组件间共享的 props 定义
 // ============================================================
@@ -66,6 +79,7 @@ export interface ChatI18n {
   cancelShare?: string
   sendError?: string
   networkError?: string
+  loginExpired?: string
   createConversation?: string
   copySuccess?: string
   copyFailed?: string
@@ -200,6 +214,7 @@ export const defaultChatI18n: Required<ChatI18n> = {
   cancelShare: '取消分享',
   sendError: '发送失败',
   networkError: '网络错误',
+  loginExpired: '登录过期，请重新登录',
   createConversation: '新建对话',
   copySuccess: '复制成功',
   copyFailed: '复制失败',
@@ -275,6 +290,7 @@ export const defaultChatI18nEn: Required<ChatI18n> = {
   cancelShare: 'Cancel Share',
   sendError: 'Send Failed',
   networkError: 'Network Error',
+  loginExpired: 'Session expired, please log in again',
   createConversation: 'New Conversation',
   copySuccess: 'Copied',
   copyFailed: 'Copy Failed',

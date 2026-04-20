@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, toRefs, watch } from 'vue'
-import type { MobileProps } from '../../model/type'
+import type { MobileProps, SelectedAgentCard } from '../../model/type'
 import { mobilePropsDefaults } from '../../model/type'
 import type { Application } from '../../model/application'
 import { agentCardDefinitions } from '../../config/agentCards'
@@ -21,13 +21,6 @@ interface AgentCardItem {
   applicationId?: string
 }
 
-interface SelectedAgentCard {
-  id: string
-  agentType: string
-  title: string
-  desc: string
-}
-
 interface Props extends MobileProps {
   currentApplicationAvatar?: string
   currentApplicationName?: string
@@ -43,7 +36,7 @@ const agentCardIconMap: Record<string, string> = {
   '2': medicineIcon,
   '3': inquiryIcon,
   '4': reportIcon,
-  '5': healthIcon,
+  '5': healthIcon
 }
 
 const staticQuestions = [
@@ -85,16 +78,18 @@ const agentCards = computed<AgentCardItem[]>(() => {
   }))
 })
 
-const activeCardId = computed(() => localSelectedCardId.value || selectedAgentCard.value?.id || '')
+const activeCardId = computed(
+  () => localSelectedCardId.value || selectedAgentCard.value?.id || ''
+)
 
 watch(
   () => selectedAgentCard.value?.id,
-  (nextId) => {
+  nextId => {
     if (nextId) {
       localSelectedCardId.value = nextId
     }
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 const handleChooseQuestion = (value: string) => {

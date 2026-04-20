@@ -8,6 +8,7 @@ import {
   type ApiConfig,
   type Application,
   type ChatConversation,
+  type SelectedAgentCard
 } from 'adp-chat-component'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useUiStore } from '@/stores/ui'
@@ -56,8 +57,8 @@ const apiConfig: ApiConfig = {
     userInfoApi: '/account/info',
     uploadApi: '/file/upload',
     asrUrlApi: '/helper/asr/url',
-    systemConfigApi: '/system/config',
-  },
+    systemConfigApi: '/system/config'
+  }
 }
 
 const languageOptions = computed(() => {
@@ -71,7 +72,7 @@ const sideI18n = computed(() => ({
   recent: t('common.recent'),
   switchTheme: t('sider.switchTheme'),
   selectLanguage: t('sider.selectLanguage'),
-  logout: t('account.logout'),
+  logout: t('account.logout')
 }))
 
 const chatI18n = computed(() => ({
@@ -84,6 +85,7 @@ const chatI18n = computed(() => ({
   cancelShare: t('operation.cancelShare'),
   sendError: t('conversation.sendError'),
   networkError: t('conversation.networkError'),
+  loginExpired: t('conversation.loginExpired'),
   createConversation: t('conversation.createConversation'),
   copySuccess: t('common.copySuccess'),
   copyFailed: t('common.copyFailed'),
@@ -92,7 +94,7 @@ const chatI18n = computed(() => ({
   loadMoreFailed: t('common.loadMoreFailed'),
   getAppListFailed: t('common.getAppListFailed'),
   getConversationListFailed: t('common.getConversationListFailed'),
-  getConversationDetailFailed: t('common.getConversationDetailFailed'),
+  getConversationDetailFailed: t('common.getConversationDetailFailed')
 }))
 
 const chatItemI18n = computed(() => ({
@@ -106,7 +108,7 @@ const chatItemI18n = computed(() => ({
   bad: t('operation.bad'),
   thxForGood: t('operation.thxForGood'),
   thxForBad: t('operation.thxForBad'),
-  references: t('sender.references'),
+  references: t('sender.references')
 }))
 
 const senderI18n = computed(() => ({
@@ -125,7 +127,7 @@ const senderI18n = computed(() => ({
   browserNotSupport: t('sender.browserNotSupport'),
   audioContextNotSupport: t('sender.audioContextNotSupport'),
   webAudioApiNotSupport: t('sender.webAudioApiNotSupport'),
-  mediaStreamSourceNotSupport: t('sender.mediaStreamSourceNotSupport'),
+  mediaStreamSourceNotSupport: t('sender.mediaStreamSourceNotSupport')
 }))
 
 const currentTab = computed<TopNavTab>(() => {
@@ -140,10 +142,12 @@ const currentTab = computed<TopNavTab>(() => {
 
 const isServiceView = computed(() => currentTab.value === 'service')
 const isConsultView = computed(() => currentTab.value === 'consult')
-const navTone = computed<'light' | 'dark'>(() => (isConsultView.value ? 'dark' : 'light'))
+const navTone = computed<'light' | 'dark'>(() =>
+  isConsultView.value ? 'dark' : 'light'
+)
 
 const shellStyle = computed(() => ({
-  '--consult-medical-bg': `url("${medicalHomeBg}")`,
+  '--consult-medical-bg': `url("${medicalHomeBg}")`
 }))
 
 const updateFromUrl = () => {
@@ -157,10 +161,20 @@ const updateFromUrl = () => {
     currentConversationId.value = route.params.conversationId as string
   }
 
-  const queryCardId = typeof route.query.agentCardId === 'string' ? route.query.agentCardId : ''
-  const queryCardType = typeof route.query.agentCardType === 'string' ? route.query.agentCardType : ''
-  const queryCardTitle = typeof route.query.agentCardTitle === 'string' ? route.query.agentCardTitle : ''
-  const queryCardDesc = typeof route.query.agentCardDesc === 'string' ? route.query.agentCardDesc : ''
+  const queryCardId =
+    typeof route.query.agentCardId === 'string' ? route.query.agentCardId : ''
+  const queryCardType =
+    typeof route.query.agentCardType === 'string'
+      ? route.query.agentCardType
+      : ''
+  const queryCardTitle =
+    typeof route.query.agentCardTitle === 'string'
+      ? route.query.agentCardTitle
+      : ''
+  const queryCardDesc =
+    typeof route.query.agentCardDesc === 'string'
+      ? route.query.agentCardDesc
+      : ''
 
   if (queryCardId && queryCardTitle) {
     const matchedCard = queryCardType
@@ -171,7 +185,7 @@ const updateFromUrl = () => {
       id: matchedCard?.id || queryCardId,
       agentType: matchedCard?.agentType || queryCardType || queryCardId,
       title: queryCardTitle,
-      desc: queryCardDesc,
+      desc: queryCardDesc
     }
   } else if (currentConversationId.value) {
     selectedAgentCard.value = null
@@ -188,10 +202,10 @@ watch(
     () => route.query.agentCardId,
     () => route.query.agentCardType,
     () => route.query.agentCardTitle,
-    () => route.query.agentCardDesc,
+    () => route.query.agentCardDesc
   ],
   () => updateFromUrl(),
-  { immediate: true },
+  { immediate: true }
 )
 
 const getSelectedAgentCardQuery = () => {
@@ -203,7 +217,7 @@ const getSelectedAgentCardQuery = () => {
     agentCardId: selectedAgentCard.value.id,
     agentCardType: selectedAgentCard.value.agentType,
     agentCardTitle: selectedAgentCard.value.title,
-    agentCardDesc: selectedAgentCard.value.desc,
+    agentCardDesc: selectedAgentCard.value.desc
   }
 }
 
@@ -225,7 +239,7 @@ const ensureApplicationsLoaded = async () => {
   return availableApplications.value
 }
 
-watch(currentTab, async (value) => {
+watch(currentTab, async value => {
   if (value !== 'consult') {
     await ensureApplicationsLoaded()
   }
@@ -247,13 +261,13 @@ const buildSelectedAgentCard = (cardId: string) => {
     id: matchedCard.id,
     agentType: matchedCard.agentType,
     title: matchedCard.title,
-    desc: matchedCard.desc,
+    desc: matchedCard.desc
   }
 }
 
 const getApplicationIdByCardId = (cardId: string) => {
   const fallbackId = availableApplications.value[0]?.ApplicationId || ''
-  const cardIndex = agentCardDefinitions.findIndex((item) => item.id === cardId)
+  const cardIndex = agentCardDefinitions.findIndex(item => item.id === cardId)
   if (cardIndex < 0) {
     return fallbackId
   }
@@ -290,7 +304,8 @@ const goToConsult = async (cardId?: string) => {
   const nextCard = cardId
     ? buildSelectedAgentCard(cardId)
     : selectedAgentCard.value || buildSelectedAgentCard('1')
-  const nextApplicationId = currentApplicationId.value || getApplicationIdByCardId(nextCard?.id || '1')
+  const nextApplicationId =
+    currentApplicationId.value || getApplicationIdByCardId(nextCard?.id || '1')
 
   currentConversationId.value = ''
   currentApplicationId.value = nextApplicationId
@@ -300,16 +315,18 @@ const goToConsult = async (cardId?: string) => {
 
   router.push({
     name: 'consult',
-    params: nextApplicationId ? { applicationId: nextApplicationId } : undefined,
+    params: nextApplicationId
+      ? { applicationId: nextApplicationId }
+      : undefined,
     query: nextCard
       ? {
           agentCardId: nextCard.id,
           agentCardType: nextCard.agentType,
           agentCardTitle: nextCard.title,
           agentCardDesc: nextCard.desc,
-          sceneTs: String(Date.now()),
+          sceneTs: String(Date.now())
         }
-      : undefined,
+      : undefined
   })
 }
 
@@ -336,12 +353,20 @@ const updateUrl = (query?: Record<string, string>) => {
 
   if (currentConversationId.value === '') {
     if (currentApplicationId.value) {
-      router.push({ name: 'consult', params: { applicationId: currentApplicationId.value }, query: nextQuery })
+      router.push({
+        name: 'consult',
+        params: { applicationId: currentApplicationId.value },
+        query: nextQuery
+      })
     } else {
       router.push({ name: 'service' })
     }
   } else {
-    router.push({ name: 'home', params: { conversationId: currentConversationId.value }, query: nextQuery })
+    router.push({
+      name: 'home',
+      params: { conversationId: currentConversationId.value },
+      query: nextQuery
+    })
   }
 }
 
@@ -370,7 +395,8 @@ const handleSelectAgentCard = (card: SelectedAgentCard) => {
   selectedAgentCard.value = card
   currentConversationId.value = ''
 
-  const nextApplicationId = currentApplicationId.value || getApplicationIdByCardId(card.id)
+  const nextApplicationId =
+    currentApplicationId.value || getApplicationIdByCardId(card.id)
   if (!nextApplicationId) {
     return
   }
@@ -379,10 +405,10 @@ const handleSelectAgentCard = (card: SelectedAgentCard) => {
 
   updateUrl({
     agentCardId: card.id,
-    agentCardType: card.agentType,
+    agentCardType: card.agentType || card.id,
     agentCardTitle: card.title,
     agentCardDesc: card.desc,
-    sceneTs: String(Date.now()),
+    sceneTs: String(Date.now())
   })
 }
 
@@ -411,10 +437,17 @@ const handleLogout = () => {
   logout(() => router.replace({ name: 'login' }))
 }
 
-const handleDataLoaded = (type: 'applications' | 'conversations' | 'chatList' | 'user', data: any) => {
+const handleDataLoaded = (
+  type: 'applications' | 'conversations' | 'chatList' | 'user',
+  data: any
+) => {
   if (type === 'applications' && data.length > 0) {
     availableApplications.value = data
-    if ((route.name === 'consult' || route.name === 'app') && !currentApplicationId.value && !currentConversationId.value) {
+    if (
+      (route.name === 'consult' || route.name === 'app') &&
+      !currentApplicationId.value &&
+      !currentConversationId.value
+    ) {
       currentApplicationId.value = data[0].ApplicationId
       updateUrl()
     }
@@ -428,8 +461,15 @@ const handleConversationChange = (conversationId: string) => {
 </script>
 
 <template>
-  <div class="home-shell" :class="`home-shell--${currentTab}`" :style="shellStyle">
-    <header class="home-shell__header" :class="`home-shell__header--${navTone}`">
+  <div
+    class="home-shell"
+    :class="`home-shell--${currentTab}`"
+    :style="shellStyle"
+  >
+    <header
+      class="home-shell__header"
+      :class="`home-shell__header--${navTone}`"
+    >
       <div class="home-shell__header-inner">
         <CommonTopNav
           :activeTab="currentTab"
@@ -456,7 +496,6 @@ const handleConversationChange = (conversationId: string) => {
           :currentConversationId="currentConversationId"
           :selectedAgentCard="selectedAgentCard"
           :aiWarningText="t('common.aiWarning')"
-          :createConversationText="t('conversation.createConversation')"
           :sideI18n="sideI18n"
           :chatI18n="chatI18n"
           :chatItemI18n="chatItemI18n"
@@ -496,7 +535,11 @@ const handleConversationChange = (conversationId: string) => {
   --page-nav-offset: 52px;
   height: 100dvh;
   background:
-    radial-gradient(circle at top left, rgba(154, 200, 255, 0.3), transparent 32%),
+    radial-gradient(
+      circle at top left,
+      rgba(154, 200, 255, 0.3),
+      transparent 32%
+    ),
     linear-gradient(180deg, #f5f7fb 0%, #eef2f8 100%);
   position: relative;
   overflow: hidden;
@@ -505,7 +548,12 @@ const handleConversationChange = (conversationId: string) => {
 .home-shell--consult {
   --page-nav-offset: 52px;
   background:
-    linear-gradient(180deg, rgba(239, 247, 255, 0.06) 0%, rgba(239, 247, 255, 0.26) 36%, rgba(238, 242, 248, 0.9) 100%),
+    linear-gradient(
+      180deg,
+      rgba(239, 247, 255, 0.06) 0%,
+      rgba(239, 247, 255, 0.26) 36%,
+      rgba(238, 242, 248, 0.9) 100%
+    ),
     var(--consult-medical-bg);
   background-position: center top;
   background-repeat: no-repeat;
@@ -544,7 +592,12 @@ const handleConversationChange = (conversationId: string) => {
 }
 
 .home-shell__header--light .home-shell__header-inner {
-  background: linear-gradient(180deg, rgba(88, 165, 255, 0.84) 0%, rgba(133, 198, 255, 0.34) 72%, rgba(133, 198, 255, 0) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(88, 165, 255, 0.84) 0%,
+    rgba(133, 198, 255, 0.34) 72%,
+    rgba(133, 198, 255, 0) 100%
+  );
 }
 
 .home-shell--consult .home-shell__header-inner {
@@ -552,7 +605,12 @@ const handleConversationChange = (conversationId: string) => {
 }
 
 .home-shell__header--dark .home-shell__header-inner {
-  background: linear-gradient(180deg, rgba(246, 249, 253, 0.98) 0%, rgba(246, 249, 253, 0.88) 74%, rgba(246, 249, 253, 0) 100%);
+  background: linear-gradient(
+    180deg,
+    rgba(246, 249, 253, 0.98) 0%,
+    rgba(246, 249, 253, 0.88) 74%,
+    rgba(246, 249, 253, 0) 100%
+  );
   backdrop-filter: blur(10px);
 }
 
