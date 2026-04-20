@@ -15,6 +15,12 @@ import { Divider as TDivider, Space as TSpace, Avatar as TAvatar, Layout as TLay
 import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n, SelectedAgentCard } from '../../model/type';
 import { chatRelatedPropsDefaults, defaultChatI18n } from '../../model/type';
 
+interface SelectedAgentCard {
+    id: string;
+    title: string;
+    desc: string;
+}
+
 export interface Props extends ChatRelatedProps {
     /** 应用列表 */
     applications?: Application[];

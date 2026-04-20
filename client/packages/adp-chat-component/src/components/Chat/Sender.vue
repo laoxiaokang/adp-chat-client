@@ -1,6 +1,6 @@
 <!-- 消息发送组件，支持文本、图片上传、语音输入 -->
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue';
+import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { ChatSender as TChatSender } from '@tdesign-vue-next/chat';
 import { MessagePlugin, Upload as TUpload, Tooltip as TTooltip } from 'tdesign-vue-next';
 import type { UploadFile, RequestMethodResponse } from 'tdesign-vue-next';
@@ -14,6 +14,18 @@ import WebRecorder from '../../utils/webRecorder';
 import { getAsrUrl } from '../../service/api';
 import voiceIcon from '../../assets/img/voice-icon.png';
 import plusCircleIcon from '../../assets/img/plus-circle-icon.png';
+import menuIcon from '../../assets/img/menu.png';
+
+interface SelectedAgentCard {
+    id: string;
+    agentType: string;
+    title: string;
+    desc: string;
+}
+
+interface SenderAgentListItem extends SelectedAgentCard {
+    applicationId?: string;
+}
 
 export interface Props extends ChatRelatedProps {
     /** 是否正在流式加载 */
@@ -28,6 +40,10 @@ export interface Props extends ChatRelatedProps {
     showLandingPrompts?: boolean;
     /** 欢迎态快捷问题 */
     landingPrompts?: string[];
+    /** 对话页 agent 切换项 */
+    agentListItems?: SenderAgentListItem[];
+    /** 当前选中的 agent 卡片 */
+    selectedAgentCard?: SelectedAgentCard | null;
     /** 国际化文本 */
     i18n?: SenderI18n;
 }
@@ -40,6 +56,8 @@ const props = withDefaults(defineProps<Props>(), {
     enableVoiceInput: true,
     showLandingPrompts: false,
     landingPrompts: () => [],
+    agentListItems: () => [],
+    selectedAgentCard: null,
     i18n: () => ({})
 });
 
@@ -55,17 +73,23 @@ const emit = defineEmits<{
     (e: 'startRecord'): void;
     (e: 'stopRecord'): void;
     (e: 'message', code: MessageCode, message: string): void;
+    (e: 'selectApplication', applicationId: string): void;
+    (e: 'selectAgentCard', card: SelectedAgentCard): void;
 }>();
 
 const inputValue = ref('');
 const inputValueBefore = ref('');
 const recording = ref(false);
+const isAgentListExpanded = ref(false);
+const agentListRef = ref<HTMLElement | null>(null);
 const fileList = ref([] as FileProps[]);
 const recorder = ref<WebRecorder | null>(null);
 const asrWebSocket = ref<WebSocket | null>(null);
 const recordMaxTime = 60;
 const recordRef = ref<ReturnType<typeof setTimeout> | null>(null);
 const chatSenderRef = ref<InstanceType<typeof TChatSender> | null>(null);
+const hasSendContent = computed(() => inputValue.value.trim().length > 0 || fileList.value.length > 0);
+const activeAgentId = computed(() => props.selectedAgentCard?.id || props.agentListItems[0]?.id || '');
 
 onMounted(() => {
     nextTick(() => {
@@ -75,6 +99,25 @@ onMounted(() => {
         }
     });
 });
+
+const scrollActiveAgentIntoView = (behavior: ScrollBehavior = 'smooth') => {
+    nextTick(() => {
+        const activeItem = agentListRef.value?.querySelector('.agent-item--active') as HTMLElement | null;
+        activeItem?.scrollIntoView({
+            behavior,
+            block: 'nearest',
+            inline: 'nearest',
+        });
+    });
+};
+
+watch(
+    [activeAgentId, isAgentListExpanded, () => props.agentListItems.length],
+    () => {
+        scrollActiveAgentIntoView(isAgentListExpanded.value ? 'smooth' : 'auto');
+    },
+    { immediate: true },
+);
 
 const handleInput = (value: string) => {
     inputValue.value = value;
@@ -118,6 +161,11 @@ const handleSend = async function (value: string) {
         return;
     }
 
+    const textValue = value.trim();
+    if (!textValue && fileList.value.length === 0) {
+        return;
+    }
+
     handleStopRecord();
 
     let query = '';
@@ -126,7 +174,7 @@ const handleSend = async function (value: string) {
             query += `![](${file.url})`;
         }
     }
-    query += value;
+    query += textValue;
 
     emit('send', query, fileList.value);
     inputValue.value = '';
@@ -262,6 +310,29 @@ const handleSelectLandingPrompt = (prompt: string) => {
     inputValue.value = inputValue.value === prompt ? '' : prompt;
 };
 
+const handleToggleAgentList = () => {
+    isAgentListExpanded.value = !isAgentListExpanded.value;
+};
+
+const isActiveAgent = (item: SenderAgentListItem) => {
+    return item.id === activeAgentId.value;
+};
+
+const handleSelectAgentFromList = (item: SenderAgentListItem) => {
+    if (!item.applicationId) {
+        return;
+    }
+
+    emit('selectApplication', item.applicationId);
+    emit('selectAgentCard', {
+        id: item.id,
+        agentType: item.agentType,
+        title: item.title,
+        desc: item.desc,
+    });
+    isAgentListExpanded.value = false;
+};
+
 const changeSenderVal = (value: string, files: FileProps[]) => {
     inputValue.value = value;
     fileList.value = files;
@@ -289,6 +360,37 @@ defineExpose({
 
 <template>
     <div class="sender-wrapper" :class="{ 'is-landing': showLandingPrompts }">
+        <div
+            v-if="agentListItems.length > 0"
+            class="agent-box"
+            :class="{ 'is-mobile': isMobile }"
+        >
+            <img
+                :src="menuIcon"
+                alt="menu"
+                class="agent-menu-icon"
+                :class="{ active: isAgentListExpanded }"
+                @click="handleToggleAgentList"
+            />
+
+            <div
+                ref="agentListRef"
+                class="agent-list"
+                :class="{ expanded: isAgentListExpanded, collapsed: !isAgentListExpanded }"
+            >
+                <button
+                    v-for="item in agentListItems"
+                    :key="item.id"
+                    type="button"
+                    class="agent-item"
+                    :class="{ 'agent-item--active': isActiveAgent(item) }"
+                    @click="handleSelectAgentFromList(item)"
+                >
+                    {{ item.title }}
+                </button>
+            </div>
+        </div>
+
         <div v-if="showLandingPrompts && landingPrompts.length > 0" class="landing-prompts">
             <button
                 v-for="prompt in landingPrompts"
@@ -334,31 +436,8 @@ defineExpose({
                             </span>
                         </button>
                     </TTooltip>
-                </div>
-            </template>
-
-            <template #suffix>
-                <div class="sender-suffix">
-                    <CustomizedIcon
-                        v-if="isStreamLoad"
-                        class="send-icon stop"
-                        nativeIcon
-                        :showHoverBg="false"
-                        :name="theme === 'dark' ? 'pause_dark' : 'pause'"
-                        @click="emit('stop')"
-                    />
-
-                    <CustomizedIcon
-                        v-else-if="inputValue"
-                        class="send-icon success"
-                        nativeIcon
-                        :showHoverBg="false"
-                        name="send_fill"
-                        @click="handleSend(inputValue)"
-                    />
 
                     <TUpload
-                        v-else
                         class="sender-upload"
                         :max="10"
                         :multiple="true"
@@ -374,6 +453,38 @@ defineExpose({
                     </TUpload>
                 </div>
             </template>
+
+            <template #suffix>
+                <div class="sender-suffix">
+                    <button
+                        v-if="isStreamLoad"
+                        type="button"
+                        class="media-button media-button--send media-button--stop"
+                        @click="emit('stop')"
+                    >
+                        <CustomizedIcon
+                            class="send-icon stop"
+                            nativeIcon
+                            :showHoverBg="false"
+                            :name="theme === 'dark' ? 'pause_dark' : 'pause'"
+                        />
+                    </button>
+
+                    <button
+                        v-else-if="hasSendContent"
+                        type="button"
+                        class="media-button media-button--send"
+                        @click="handleSend(inputValue)"
+                    >
+                        <CustomizedIcon
+                            class="send-icon success"
+                            nativeIcon
+                            :showHoverBg="false"
+                            name="send_fill"
+                        />
+                    </button>
+                </div>
+            </template>
         </TChatSender>
     </div>
 </template>
@@ -386,6 +497,96 @@ defineExpose({
     display: flex;
     flex-direction: column;
     gap: 8px;
+}
+
+.agent-box {
+    display: flex;
+    align-items: center;
+    align-self: flex-start;
+    max-width: 100%;
+    width: fit-content;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border-radius: 30px;
+    border: 1px solid var(--td-component-stroke);
+    background-color: #fff;
+    box-sizing: border-box;
+}
+
+.agent-menu-icon {
+    width: 18px;
+    height: auto;
+    margin-right: 6px;
+    margin-left: 4px;
+    cursor: pointer;
+    transition: transform 0.3s;
+}
+
+.agent-menu-icon.active {
+    transform: rotate(90deg);
+}
+
+.agent-list {
+    display: flex;
+    align-items: center;
+    margin-left: 12px;
+    min-width: 0;
+    max-width: min(500px, calc(100vw - 160px));
+    border-left: 1px solid var(--td-component-stroke);
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    touch-action: pan-x;
+    transition: max-width 0.28s ease;
+}
+
+.agent-list::-webkit-scrollbar {
+    display: none;
+}
+
+.agent-list.collapsed {
+    max-width: 116px;
+    overflow: hidden;
+}
+
+.agent-list.collapsed .agent-item {
+    display: none;
+}
+
+.agent-list.collapsed .agent-item--active {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.agent-item {
+    flex: 0 0 auto;
+    border: 0;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    color: var(--td-text-color-primary);
+    padding: 0 16px;
+    height: auto;
+    font-size: 14px;
+    line-height: 1;
+    font-weight: 500;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.agent-item:focus,
+.agent-item:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.agent-item--active {
+    color: #3c73ff;
 }
 
 .landing-prompts {
@@ -423,6 +624,8 @@ defineExpose({
 .sender-suffix {
     display: flex;
     align-items: center;
+    gap: 6px;
+    min-height: 28px;
 }
 
 .media-button {
@@ -478,20 +681,37 @@ defineExpose({
 }
 
 .send-icon {
+    width: 28px !important;
+    height: 28px !important;
     padding: 0 !important;
-    cursor: pointer;
     display: inline-flex;
     align-items: center;
     justify-content: center;
 }
 
+.media-button--send {
+    line-height: 0;
+}
+
 .sender-upload {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    line-height: 0;
 }
 
 :deep(.sender-upload .t-upload) {
     display: inline-flex;
+    align-items: center;
+}
+
+:deep(.sender-upload .t-upload__trigger),
+:deep(.sender-prefix .t-tooltip__trigger),
+:deep(.sender-suffix .t-tooltip__trigger) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
 }
 
 :deep(.t-chat-sender) {
@@ -561,13 +781,40 @@ defineExpose({
         gap: 6px;
     }
 
+    .agent-box {
+        padding: 6px 10px;
+        margin-bottom: 6px;
+    }
+
+    .agent-box.is-mobile .agent-menu-icon {
+        width: 16px;
+        margin-right: 5px;
+        margin-left: 2px;
+    }
+
+    .agent-box.is-mobile .agent-list {
+        margin-left: 8px;
+        max-width: calc(100vw - 110px);
+    }
+
+    .agent-box.is-mobile .agent-list.collapsed {
+        max-width: 98px;
+    }
+
+    .agent-box.is-mobile .agent-item {
+        padding: 0 10px;
+        font-size: 12px;
+        line-height: 1;
+    }
+
     .landing-prompt {
         padding: 6px 10px;
         font-size: 12px;
     }
 
     .media-button,
-    .media-button img {
+    .media-button img,
+    .send-icon {
         width: 24px;
         height: 24px;
     }

@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { ADPChat, type ApiConfig, type Application, type ChatConversation, type SelectedAgentCard } from 'adp-chat-component';
+import {
+    ADPChat,
+    getAgentCardByAgentType,
+    getAgentCardById,
+    getAgentCardByTitle,
+    type ApiConfig,
+    type Application,
+    type ChatConversation
+} from 'adp-chat-component';
 import { onMounted, computed, ref, watch } from 'vue'
 import { useUiStore } from '@/stores/ui'
 import { logout } from '@/service/login';
@@ -8,6 +16,13 @@ import { useI18n } from 'vue-i18n';
 import { languageMap } from '@/i18n';
 import { getBaseURL } from '@/utils/url';
 import Logo from '@/assets/img/favicon.ico';
+
+interface SelectedAgentCard {
+    id: string;
+    agentType: string;
+    title: string;
+    desc: string;
+}
 
 const router = useRouter()
 const uiStore = useUiStore()
@@ -144,12 +159,17 @@ const updateFromUrl = () => {
     }
 
     const queryCardId = typeof route.query.agentCardId === 'string' ? route.query.agentCardId : '';
+    const queryCardType = typeof route.query.agentCardType === 'string' ? route.query.agentCardType : '';
     const queryCardTitle = typeof route.query.agentCardTitle === 'string' ? route.query.agentCardTitle : '';
     const queryCardDesc = typeof route.query.agentCardDesc === 'string' ? route.query.agentCardDesc : '';
 
     if (queryCardId && queryCardTitle) {
+        const matchedCard = queryCardType
+            ? getAgentCardById(queryCardId) || getAgentCardByAgentType(queryCardType)
+            : getAgentCardByTitle(queryCardTitle) || getAgentCardById(queryCardId);
         selectedAgentCard.value = {
-            id: queryCardId,
+            id: matchedCard?.id || queryCardId,
+            agentType: matchedCard?.agentType || queryCardType || queryCardId,
             title: queryCardTitle,
             desc: queryCardDesc,
         };
@@ -162,6 +182,7 @@ const updateFromUrl = () => {
 watch(() => route.params.applicationId, () => updateFromUrl());
 watch(() => route.params.conversationId, () => updateFromUrl());
 watch(() => route.query.agentCardId, () => updateFromUrl());
+watch(() => route.query.agentCardType, () => updateFromUrl());
 
 const getSelectedAgentCardQuery = () => {
     if (!selectedAgentCard.value) {
@@ -170,6 +191,7 @@ const getSelectedAgentCardQuery = () => {
 
     return {
         agentCardId: selectedAgentCard.value.id,
+        agentCardType: selectedAgentCard.value.agentType,
         agentCardTitle: selectedAgentCard.value.title,
         agentCardDesc: selectedAgentCard.value.desc,
     };
@@ -204,6 +226,7 @@ const handleSelectAgentCard = (card: SelectedAgentCard) => {
     }
     updateUrl({
         agentCardId: card.id,
+        agentCardType: card.agentType,
         agentCardTitle: card.title,
         agentCardDesc: card.desc,
         sceneTs: String(Date.now()),

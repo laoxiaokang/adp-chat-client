@@ -63,6 +63,16 @@ import {
     defaultSideI18nEn
 } from '../../model/type';
 
+<<<<<<< HEAD
+=======
+interface SelectedAgentCard {
+    id: string;
+    agentType: string;
+    title: string;
+    desc: string;
+}
+
+>>>>>>> ab4b2bab078ab78496194a84ef326336d7cdc0bd
 export interface Props extends ThemeProps, OverlayProps {
     /** 当前语言标识，用于自动选择内部默认 i18n（如 'zh-CN'、'en-US'） */
     language?: string;
@@ -339,7 +349,7 @@ const mergedSenderI18n = computed(() => {
 
 const selectedAgentCardVariables = computed(() => {
     return {
-        AgentType: props.selectedAgentCard?.id || '',
+        AgentType: props.selectedAgentCard?.agentType || props.selectedAgentCard?.id || '',
     };
 });
 
