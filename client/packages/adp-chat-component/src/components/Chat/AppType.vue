@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, toRefs } from 'vue'
-import type { MobileProps } from '../../model/type'
+import type { MobileProps, SelectedAgentCard } from '../../model/type'
 import { mobilePropsDefaults } from '../../model/type'
 import type { Application } from '../../model/application'
 import { agentCardDefinitions } from '../../config/agentCards'
@@ -19,13 +19,6 @@ interface AgentCardItem {
   agentType: string
   icon: string
   applicationId?: string
-}
-
-interface SelectedAgentCard {
-  id: string
-  agentType: string
-  title: string
-  desc: string
 }
 
 interface Props extends MobileProps {

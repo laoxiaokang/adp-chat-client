@@ -6,7 +6,8 @@ import {
     getAgentCardByTitle,
     type ApiConfig,
     type Application,
-    type ChatConversation
+    type ChatConversation,
+    type SelectedAgentCard
 } from 'adp-chat-component';
 import { onMounted, computed, ref, watch } from 'vue'
 import { useUiStore } from '@/stores/ui'
@@ -16,13 +17,6 @@ import { useI18n } from 'vue-i18n';
 import { languageMap } from '@/i18n';
 import { getBaseURL } from '@/utils/url';
 import Logo from '@/assets/img/favicon.ico';
-
-interface SelectedAgentCard {
-    id: string;
-    agentType: string;
-    title: string;
-    desc: string;
-}
 
 const router = useRouter()
 const uiStore = useUiStore()
@@ -226,7 +220,7 @@ const handleSelectAgentCard = (card: SelectedAgentCard) => {
     }
     updateUrl({
         agentCardId: card.id,
-        agentCardType: card.agentType,
+        agentCardType: card.agentType || card.id,
         agentCardTitle: card.title,
         agentCardDesc: card.desc,
         sceneTs: String(Date.now()),
@@ -293,7 +287,6 @@ const handleConversationChange = (conversationId: string) => {
         :currentConversationId="currentConversationId"
         :selectedAgentCard="selectedAgentCard"
         :aiWarningText="t('common.aiWarning')"
-        :createConversationText="t('conversation.createConversation')"
         :sideI18n="sideI18n"
         :chatI18n="chatI18n"
         :chatItemI18n="chatItemI18n"

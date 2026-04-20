@@ -61,6 +61,8 @@ export type {
     ChatRelatedProps,
     LanguageOption,
     UserInfo,
+    SelectedAgentCard,
+    SenderAgentListItem,
     SideI18n,
     ChatI18n,
     ChatItemI18n,

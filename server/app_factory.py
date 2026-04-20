@@ -5,10 +5,15 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from sanic import Sanic
+from sanic.worker.manager import WorkerManager
 
 env_path = Path(__file__).resolve().parent / ".env"
 logging.getLogger(__name__).warning("Loading dotenv from %s (exists=%s)", env_path, env_path.exists())
 load_dotenv(env_path, override=False)
+
+worker_ack_threshold = float(os.getenv("SANIC_WORKER_ACK_THRESHOLD", "30"))
+WorkerManager.THRESHOLD = worker_ack_threshold
+logging.getLogger(__name__).warning("Sanic worker ack threshold set to %ss", worker_ack_threshold)
 
 from util.module import autodiscover
 from util.module import autodiscover_vendor

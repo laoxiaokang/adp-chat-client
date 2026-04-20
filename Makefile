@@ -1,6 +1,11 @@
 .PHONY: client server docs deploy build dev dev_withdb
 
+SHELL := /bin/bash
+
 -include Makefile.local
+
+NPM_CACHE_VOLUME ?= adp-chat-client-npm-cache
+PACK_TMP_ROOT ?= /tmp/adp-chat-client-pack
 
 # ----------------- client -----------------
 
@@ -25,19 +30,23 @@ test_server:
 # ----------------- pack -----------------
 
 build_server:
-	-mkdir build
+	mkdir -p build build/server
 	rsync -avr --exclude='__pycache__' --exclude='.*' server/ build/server/
 
 build_client:
-	-mkdir build
-	rsync -avr --exclude='node_modules' --exclude='.*' client/ build/client/
-	docker run -v ./build:/build/ -w /build node:22-bullseye-slim sh -c "cd client && npm i && npm run build"
+	mkdir -p build build/client
+	rm -rf $(PACK_TMP_ROOT)
+	mkdir -p $(PACK_TMP_ROOT)/client $(PACK_TMP_ROOT)/server
+	rsync -avr --delete --exclude='node_modules' --exclude='dist' --exclude='coverage' --exclude='.*' client/ $(PACK_TMP_ROOT)/client/
+	docker run --rm -v $(PACK_TMP_ROOT):/build -v $(NPM_CACHE_VOLUME):/root/.npm -w /build node:22-bullseye-slim sh -c "cd client && (npm ci --prefer-offline --no-audit --fund=false || (echo '[build_client] npm ci failed, falling back to npm install'; npm cache verify >/dev/null 2>&1 || true; npm install --prefer-offline --no-audit --fund=false)) && npm run build"
+	mkdir -p build/server/static
+	rsync -avr --delete $(PACK_TMP_ROOT)/server/static/ build/server/static/
 
 build_component:
 	cd client && npm run build_component
 
 build:
-	-mkdir build
+	mkdir -p build
 	make build_server
 	make build_client
 
@@ -45,10 +54,8 @@ clean:
 	rm -rf build
 
 pack: build
-	-mkdir build/docker
+	DOCKER_BUILDKIT=1 docker build -t adp-chat-client -f docker/Dockerfile build/server
 	# 通过rsync -L把符号链接替换为实际文件
-	rsync -avL --exclude='__pycache__' --exclude='.*' build/server/ build/docker/server/
-	cd build && docker build -t adp-chat-client -f ../docker/Dockerfile .
 
 push_image:
 	docker tag adp-chat-client mirrors.tencent.com/ti-machine-learning/adp-chat-client:0.0.2
@@ -92,4 +99,4 @@ run_component_example:
 	set -a && source server/.env && set +a; cd client/packages/adp-chat-component-example/vue-init-example; npm run dev
 
 run_server:
-	source server/.venv/bin/activate; set -a && source server/.env && set +a; cd server; sanic app_factory:create_app --factory --reload --reload-dir=./ -H 0.0.0.0 -p $$SERVER_HTTP_PORT
+	source server/.venv/bin/activate; set -a && source server/.env && set +a; export SANIC_WORKER_ACK_THRESHOLD=$${SANIC_WORKER_ACK_THRESHOLD:-120}; cd server; sanic app_factory:create_app --factory --reload --reload-dir=./ -H 0.0.0.0 -p $$SERVER_HTTP_PORT

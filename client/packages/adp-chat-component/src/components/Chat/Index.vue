@@ -155,7 +155,7 @@ import { ScoreValue } from '../../model/chat-v2'
 import type { FileProps } from '../../model/file';
 import type { Application } from '../../model/application';
 import { MessageCode } from '../../model/messages';
-import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n } from '../../model/type'
+import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n, SelectedAgentCard, SenderAgentListItem } from '../../model/type'
 import { chatRelatedPropsDefaults, defaultChatI18n, defaultChatI18nEn, defaultChatItemI18n, defaultChatItemI18nEn, defaultSenderI18n, defaultSenderI18nEn } from '../../model/type'
 import { agentCardDefinitions } from '../../config/agentCards'
 
@@ -165,13 +165,6 @@ import Sender from './Sender.vue'
 import BackToBottom from './BackToBottom.vue'
 import ChatItem from './ChatItem.vue'
 import CustomizedIcon from '../CustomizedIcon.vue';
-
-interface SelectedAgentCard {
-    id: string;
-    agentType: string;
-    title: string;
-    desc: string;
-}
 
 export interface Props extends ChatRelatedProps {
     /** 当前会话ID */

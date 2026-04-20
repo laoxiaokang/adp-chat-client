@@ -6,7 +6,7 @@ import { MessagePlugin, Upload as TUpload, Tooltip as TTooltip } from 'tdesign-v
 import type { UploadFile, RequestMethodResponse } from 'tdesign-vue-next';
 import type { FileProps } from '../../model/file';
 import { MessageCode, getMessage } from '../../model/messages';
-import type { ChatRelatedProps, SenderI18n } from '../../model/type';
+import type { ChatRelatedProps, SenderI18n, SelectedAgentCard, SenderAgentListItem } from '../../model/type';
 import { chatRelatedPropsDefaults, defaultSenderI18n, defaultSenderI18nEn } from '../../model/type';
 import FileList from '../Common/FileList.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
@@ -15,17 +15,6 @@ import { getAsrUrl } from '../../service/api';
 import voiceIcon from '../../assets/img/voice-icon.png';
 import plusCircleIcon from '../../assets/img/plus-circle-icon.png';
 import menuIcon from '../../assets/img/menu.png';
-
-interface SelectedAgentCard {
-    id: string;
-    agentType: string;
-    title: string;
-    desc: string;
-}
-
-interface SenderAgentListItem extends SelectedAgentCard {
-    applicationId?: string;
-}
 
 export interface Props extends ChatRelatedProps {
     /** 是否正在流式加载 */
