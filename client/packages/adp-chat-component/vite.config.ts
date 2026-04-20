@@ -4,20 +4,23 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import { createSvgIconsPlugin } from 'vite-plugin-svg-icons'
 import dts from 'vite-plugin-dts'
 import { visualizer } from 'rollup-plugin-visualizer'
+import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const distTypesEntry = path.resolve(__dirname, 'dist/types/index.d.ts')
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   const isAnalyze = mode === 'analyze'
   const isUmd = mode === 'umd'
+  const shouldGenerateDts = !isUmd || !fs.existsSync(distTypesEntry)
   return {
     plugins: [
       vue(), 
       vueJsx(),
-      dts({
+      shouldGenerateDts && dts({
         // 指定要编译的 TypeScript 配置文件
         tsconfigPath: './tsconfig.app.json',
         // 输出目录
@@ -61,6 +64,7 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: isUmd ? "dist/umd" : "dist/es",
+      reportCompressedSize: false,
       lib: {
         entry: path.resolve(__dirname, 'src/index.ts'),
         name: 'ADPChatComponent',

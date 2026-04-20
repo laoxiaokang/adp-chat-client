@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, toRefs } from 'vue'
-import type { MobileProps } from '../../model/type'
+import type { MobileProps, SelectedAgentCard } from '../../model/type'
 import { mobilePropsDefaults } from '../../model/type'
 import type { Application } from '../../model/application'
 import healthIcon from '../../assets/img/qa-ai.png'
@@ -18,12 +18,6 @@ interface AgentCardItem {
   type: string
   icon: string
   applicationId?: string
-}
-
-interface SelectedAgentCard {
-  id: string
-  title: string
-  desc: string
 }
 
 interface Props extends MobileProps {
@@ -45,15 +39,15 @@ const staticAgentCards: AgentCardItem[] = [
     icon: healthIcon
   },
   {
-    id: '2',
-    type: '2',
+    id: '3',
+    type: '3',
     title: '用药助手',
     desc: '药物作用与服用方式快速查询',
     icon: medicineIcon
   },
   {
-    id: '3',
-    type: '3',
+    id: '2',
+    type: '2',
     title: '智能问病',
     desc: '根据症状给出初步分析建议',
     icon: inquiryIcon

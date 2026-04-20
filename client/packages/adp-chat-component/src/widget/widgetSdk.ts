@@ -29,7 +29,7 @@ export function loadWidgetSdk(): Promise<void> {
     return widgetSdkLoadPromise;
   }
 
-  widgetSdkLoadPromise = import('adp-widget').then(() => {
+  widgetSdkLoadPromise = import('../../../adp-widget/src/adp-widget.js').then(() => {
     // 等待 custom element 注册完成
     return new Promise<void>((resolve) => {
       const checkRegistration = () => {

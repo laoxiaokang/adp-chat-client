@@ -22,6 +22,13 @@ export interface UserInfo {
   name?: string
 }
 
+/** 当前选中的智能体卡片 */
+export interface SelectedAgentCard {
+  id: string
+  title: string
+  desc: string
+}
+
 // ============================================================
 // 公共 Props 接口 - 用于组件间共享的 props 定义
 // ============================================================

@@ -25,6 +25,7 @@
     "dev": "vite",
     "build": "rm -rf dist && vue-tsc -b && npm run build:es && npm run build:umd",
     "build:es": "vite build --mode es",
+    "build:fast": "rm -rf dist/es && vite build --mode es",
     "build:umd": "vite build --mode umd",
     "preview": "vite preview",
     "analyze": "vite build --mode analyze"

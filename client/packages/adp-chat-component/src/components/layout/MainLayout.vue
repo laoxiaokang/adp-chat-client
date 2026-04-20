@@ -12,14 +12,8 @@ import CreateConversation from '../CreateConversation.vue';
 import { Divider as TDivider, Space as TSpace, Avatar as TAvatar, Layout as TLayout, Content as TContent, Header as THeader, Footer as TFooter } from 'tdesign-vue-next';
 
 // TAvatar, TLayout, TContent, THeader, TFooter 已导入，模板中使用对应组件
-import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n } from '../../model/type';
+import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n, SelectedAgentCard } from '../../model/type';
 import { chatRelatedPropsDefaults, defaultChatI18n } from '../../model/type';
-
-interface SelectedAgentCard {
-    id: string;
-    title: string;
-    desc: string;
-}
 
 export interface Props extends ChatRelatedProps {
     /** 应用列表 */
