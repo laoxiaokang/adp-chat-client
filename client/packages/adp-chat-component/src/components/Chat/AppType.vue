@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed, ref, toRefs } from 'vue'
-import type { MobileProps, SelectedAgentCard } from '../../model/type'
+import type { MobileProps } from '../../model/type'
 import { mobilePropsDefaults } from '../../model/type'
 import type { Application } from '../../model/application'
+import { agentCardDefinitions } from '../../config/agentCards'
 import healthIcon from '../../assets/img/qa-ai.png'
 import medicineIcon from '../../assets/img/medicine-icon.png'
 import inquiryIcon from '../../assets/img/inquiry-icon.png'
@@ -15,9 +16,16 @@ interface AgentCardItem {
   id: string
   title: string
   desc: string
-  type: string
+  agentType: string
   icon: string
   applicationId?: string
+}
+
+interface SelectedAgentCard {
+  id: string
+  agentType: string
+  title: string
+  desc: string
 }
 
 interface Props extends MobileProps {
@@ -30,36 +38,13 @@ interface Props extends MobileProps {
   isOverlay?: boolean
 }
 
-const staticAgentCards: AgentCardItem[] = [
-  {
-    id: '1',
-    type: '1',
-    title: '健康咨询',
-    desc: '日常健康问题，随时在线答疑',
-    icon: healthIcon
-  },
-  {
-    id: '3',
-    type: '3',
-    title: '用药助手',
-    desc: '药物作用与服用方式快速查询',
-    icon: medicineIcon
-  },
-  {
-    id: '2',
-    type: '2',
-    title: '智能问病',
-    desc: '根据症状给出初步分析建议',
-    icon: inquiryIcon
-  },
-  {
-    id: '4',
-    type: '4',
-    title: '报告解读',
-    desc: '体检检查结果一眼看懂重点',
-    icon: reportIcon
-  }
-]
+const agentCardIconMap: Record<string, string> = {
+  '1': healthIcon,
+  '2': medicineIcon,
+  '3': inquiryIcon,
+  '4': reportIcon,
+  '5': healthIcon,
+}
 
 const staticQuestions = [
   '感冒了可以吃头孢吗？',
@@ -92,8 +77,9 @@ const checkedQuestion = ref('')
 
 const agentCards = computed<AgentCardItem[]>(() => {
   const fallbackAppId = applications.value[0]?.ApplicationId
-  return staticAgentCards.map((card, index) => ({
+  return agentCardDefinitions.map((card, index) => ({
     ...card,
+    icon: agentCardIconMap[card.id] || healthIcon,
     applicationId: applications.value[index]?.ApplicationId || fallbackAppId
   }))
 })
@@ -124,7 +110,8 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
   }
   emit('selectApplication', item.applicationId)
   emit('selectAgentCard', {
-    id: item.type,
+    id: item.id,
+    agentType: item.agentType,
     title: item.title,
     desc: item.desc
   })
@@ -158,9 +145,7 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
             class="service-card"
             :class="{
               disabled: !item.applicationId,
-              active:
-                selectedAgentCard?.id === item.id ||
-                selectedAgentCard?.id === item.type
+              active: selectedAgentCard?.id === item.id
             }"
             @click="handleChooseAgentCard(item)"
           >
@@ -261,7 +246,7 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
 .hero-image {
   position: absolute;
   right: 10px;
-  bottom: 0px;
+  bottom: 28px;
   width: 154px;
   max-width: 38%;
   z-index: 2;
@@ -280,7 +265,7 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
 
 .service-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -288,13 +273,13 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
   border: 0;
   border-radius: 20px;
   background: linear-gradient(180deg, #f5f9ff 0%, #eef4fa 100%);
-  min-height: 132px;
-  padding: 14px 10px 12px;
+  min-height: 122px;
+  padding: 14px 12px 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: 6px;
+  gap: 5px;
   text-align: center;
   color: #455365;
   cursor: pointer;
@@ -321,8 +306,8 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
 }
 
 .service-card__icon {
-  width: 60px;
-  height: 60px;
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -342,7 +327,7 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
 
 .service-card__desc {
   font-size: 11px;
-  line-height: 1.35;
+  line-height: 1.3;
   color: #7f8c9d;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -446,41 +431,46 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
 
 .isMobile .hero-image {
   right: 8px;
-  bottom: -12px;
+  bottom: 14px;
   width: 106px;
   max-width: 38%;
 }
 
 .isMobile .service-panel {
   margin: -14px 0 0;
-  padding: 10px;
+  padding: 8px;
   border-radius: 18px;
 }
 
 .isMobile .service-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .isMobile .service-card {
-  min-height: 92px;
-  padding: 10px 8px 8px;
-  border-radius: 16px;
-  gap: 4px;
+  min-height: 78px;
+  padding: 8px 6px 7px;
+  border-radius: 14px;
+  gap: 3px;
 }
 
 .isMobile .service-card__icon {
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
 }
 
 .isMobile .service-card__title {
-  font-size: 14px;
+  font-size: 12px;
+  line-height: 1.2;
 }
 
 .isMobile .service-card__desc {
-  font-size: 10px;
-  line-height: 1.25;
+  display: -webkit-box;
+  font-size: 9px;
+  line-height: 1.2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .isMobile .faq-card {

@@ -1,5 +1,3 @@
-export {};
-
 declare module 'adp-widget';
 declare module 'adp-widget/vendor';
 declare module 'adp-widget/markdown';

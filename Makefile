@@ -25,11 +25,11 @@ test_server:
 # ----------------- pack -----------------
 
 build_server:
-	mkdir -p build build/server
+	-mkdir build
 	rsync -avr --exclude='__pycache__' --exclude='.*' server/ build/server/
 
 build_client:
-	mkdir -p build build/client
+	-mkdir build
 	rsync -avr --exclude='node_modules' --exclude='.*' client/ build/client/
 	docker run -v ./build:/build/ -w /build node:22-bullseye-slim sh -c "cd client && npm i && npm run build"
 
@@ -37,7 +37,7 @@ build_component:
 	cd client && npm run build_component
 
 build:
-	mkdir -p build
+	-mkdir build
 	make build_server
 	make build_client
 
@@ -45,7 +45,7 @@ clean:
 	rm -rf build
 
 pack: build
-	mkdir -p build/docker build/docker/server
+	-mkdir build/docker
 	# 通过rsync -L把符号链接替换为实际文件
 	rsync -avL --exclude='__pycache__' --exclude='.*' build/server/ build/docker/server/
 	cd build && docker build -t adp-chat-client -f ../docker/Dockerfile .

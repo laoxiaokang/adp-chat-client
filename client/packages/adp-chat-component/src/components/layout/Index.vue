@@ -41,7 +41,6 @@ import type { WidgetActionRequest } from '../../widget';
 import type { 
     LanguageOption, 
     UserInfo,
-    SelectedAgentCard,
     SideI18n, 
     ChatI18n, 
     ChatItemI18n, 
@@ -63,8 +62,6 @@ import {
     defaultSideI18nEn
 } from '../../model/type';
 
-<<<<<<< HEAD
-=======
 interface SelectedAgentCard {
     id: string;
     agentType: string;
@@ -72,7 +69,6 @@ interface SelectedAgentCard {
     desc: string;
 }
 
->>>>>>> ab4b2bab078ab78496194a84ef326336d7cdc0bd
 export interface Props extends ThemeProps, OverlayProps {
     /** 当前语言标识，用于自动选择内部默认 i18n（如 'zh-CN'、'en-US'） */
     language?: string;

@@ -65,7 +65,6 @@ export type {
     ChatI18n,
     ChatItemI18n,
     SenderI18n,
-    SelectedAgentCard,
 } from './model/type'
 export {
     themePropsDefaults,
