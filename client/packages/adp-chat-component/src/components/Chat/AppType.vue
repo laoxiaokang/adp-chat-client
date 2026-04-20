@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, toRefs } from 'vue'
+import { computed, ref, toRefs, watch } from 'vue'
 import type { MobileProps } from '../../model/type'
 import { mobilePropsDefaults } from '../../model/type'
 import type { Application } from '../../model/application'
@@ -74,6 +74,7 @@ const emit = defineEmits<{
 }>()
 
 const checkedQuestion = ref('')
+const localSelectedCardId = ref('')
 
 const agentCards = computed<AgentCardItem[]>(() => {
   const fallbackAppId = applications.value[0]?.ApplicationId
@@ -83,6 +84,18 @@ const agentCards = computed<AgentCardItem[]>(() => {
     applicationId: applications.value[index]?.ApplicationId || fallbackAppId
   }))
 })
+
+const activeCardId = computed(() => localSelectedCardId.value || selectedAgentCard.value?.id || '')
+
+watch(
+  () => selectedAgentCard.value?.id,
+  (nextId) => {
+    if (nextId) {
+      localSelectedCardId.value = nextId
+    }
+  },
+  { immediate: true },
+)
 
 const handleChooseQuestion = (value: string) => {
   if (checkedQuestion.value === value) {
@@ -108,6 +121,7 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
   if (!item.applicationId) {
     return
   }
+  localSelectedCardId.value = item.id
   emit('selectApplication', item.applicationId)
   emit('selectAgentCard', {
     id: item.id,
@@ -145,7 +159,7 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
             class="service-card"
             :class="{
               disabled: !item.applicationId,
-              active: selectedAgentCard?.id === item.id
+              active: activeCardId === item.id
             }"
             @click="handleChooseAgentCard(item)"
           >
@@ -187,12 +201,13 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 2px 0 12px;
+  gap: 6px;
+  padding: 2px 0 10px;
 }
 
 .landing-actions {
-  margin-top: 24px;
+  margin-top: 14px;
+  padding-right: 6px;
 }
 
 .hero-stack {
@@ -202,7 +217,7 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
 
 .hero-card {
   position: relative;
-  min-height: 174px;
+  min-height: 184px;
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.88);
   background: linear-gradient(
@@ -210,10 +225,10 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
     rgba(255, 255, 255, 0.5),
     rgba(228, 244, 255, 0.72)
   );
-  padding: 18px 20px 60px;
+  padding: 20px 20px 52px;
   overflow: visible;
   box-shadow: 0 18px 40px rgba(105, 160, 194, 0.12);
-  margin-top: 48px;
+  margin-top: 18px;
 }
 
 .hero-copy {
@@ -245,9 +260,9 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
 
 .hero-image {
   position: absolute;
-  right: 10px;
-  bottom: 28px;
-  width: 154px;
+  right: 12px;
+  bottom: 10px;
+  width: 138px;
   max-width: 38%;
   z-index: 2;
   pointer-events: none;
@@ -256,10 +271,10 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
 .service-panel {
   position: relative;
   z-index: 1;
-  margin: -28px 12px 0;
+  margin: -24px 10px 0;
   padding: 14px;
   border-radius: 24px;
-  background: rgba(255, 255, 255, 0.98);
+  background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 16px 38px rgba(108, 162, 197, 0.2);
 }
 
@@ -270,7 +285,7 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
 }
 
 .service-card {
-  border: 0;
+  border: 2px solid transparent;
   border-radius: 20px;
   background: linear-gradient(180deg, #f5f9ff 0%, #eef4fa 100%);
   min-height: 122px;
@@ -286,8 +301,8 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
   transition:
     transform 0.18s ease,
     box-shadow 0.18s ease,
-    outline-color 0.18s ease;
-  outline: 2px solid transparent;
+    border-color 0.18s ease,
+    background 0.18s ease;
 }
 
 .service-card:hover {
@@ -301,7 +316,8 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
 }
 
 .service-card.active {
-  outline-color: #6bbaff;
+  border-color: #6bbaff;
+  background: linear-gradient(180deg, #fafdff 0%, #eef7ff 100%);
   box-shadow: 0 12px 24px rgba(94, 167, 230, 0.24);
 }
 
@@ -338,7 +354,7 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
 .faq-card {
   border-radius: 24px;
   border: 1px solid rgba(255, 255, 255, 0.86);
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.24);
   min-height: 196px;
   padding: 16px 16px 18px;
 }
@@ -385,12 +401,14 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
 
 .isMobile.welcome-container {
   max-width: 100%;
-  gap: 10px;
+  gap: 8px;
   padding: 0 0 6px;
 }
 
 .isMobile .landing-actions {
-  margin-bottom: -4px;
+  margin-top: 10px;
+  padding-right: 4px;
+  margin-bottom: 0;
 }
 
 .isMobile .landing-pill {
@@ -406,13 +424,14 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
 }
 
 .isMobile .hero-card {
-  min-height: 122px;
-  padding: 14px 14px 48px;
+  min-height: 136px;
+  padding: 15px 14px 40px;
   border-radius: 20px;
+  margin-top: 14px;
 }
 
 .isMobile .hero-copy {
-  max-width: 62%;
+  max-width: 60%;
 }
 
 .isMobile .hero-title {
@@ -431,13 +450,13 @@ const handleChooseAgentCard = (item: AgentCardItem) => {
 
 .isMobile .hero-image {
   right: 8px;
-  bottom: 14px;
-  width: 106px;
+  bottom: 6px;
+  width: 96px;
   max-width: 38%;
 }
 
 .isMobile .service-panel {
-  margin: -14px 0 0;
+  margin: -12px 0 0;
   padding: 8px;
   border-radius: 18px;
 }

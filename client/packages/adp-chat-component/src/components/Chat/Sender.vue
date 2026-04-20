@@ -89,7 +89,16 @@ const recordMaxTime = 60;
 const recordRef = ref<ReturnType<typeof setTimeout> | null>(null);
 const chatSenderRef = ref<InstanceType<typeof TChatSender> | null>(null);
 const hasSendContent = computed(() => inputValue.value.trim().length > 0 || fileList.value.length > 0);
-const activeAgentId = computed(() => props.selectedAgentCard?.id || props.agentListItems[0]?.id || '');
+const localSelectedAgentId = ref('');
+const activeAgentId = computed(() => localSelectedAgentId.value || props.selectedAgentCard?.id || props.agentListItems[0]?.id || '');
+const visibleAgentListItems = computed(() => {
+    if (isAgentListExpanded.value) {
+        return props.agentListItems;
+    }
+
+    const activeItem = props.agentListItems.find((item) => item.id === activeAgentId.value);
+    return activeItem ? [activeItem] : props.agentListItems.slice(0, 1);
+});
 
 onMounted(() => {
     nextTick(() => {
@@ -115,6 +124,21 @@ watch(
     [activeAgentId, isAgentListExpanded, () => props.agentListItems.length],
     () => {
         scrollActiveAgentIntoView(isAgentListExpanded.value ? 'smooth' : 'auto');
+    },
+    { immediate: true },
+);
+
+watch(
+    () => props.selectedAgentCard?.id,
+    (nextId) => {
+        if (nextId) {
+            localSelectedAgentId.value = nextId;
+            return;
+        }
+
+        if (!localSelectedAgentId.value && props.agentListItems.length > 0) {
+            localSelectedAgentId.value = props.agentListItems[0].id;
+        }
     },
     { immediate: true },
 );
@@ -323,6 +347,7 @@ const handleSelectAgentFromList = (item: SenderAgentListItem) => {
         return;
     }
 
+    localSelectedAgentId.value = item.id;
     emit('selectApplication', item.applicationId);
     emit('selectAgentCard', {
         id: item.id,
@@ -379,7 +404,7 @@ defineExpose({
                 :class="{ expanded: isAgentListExpanded, collapsed: !isAgentListExpanded }"
             >
                 <button
-                    v-for="item in agentListItems"
+                    v-for="item in visibleAgentListItems"
                     :key="item.id"
                     type="button"
                     class="agent-item"

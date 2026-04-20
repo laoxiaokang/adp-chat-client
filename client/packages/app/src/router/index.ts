@@ -11,6 +11,21 @@ const router = createRouter({
   history: createWebHashHistory(),
   routes: [
     {
+      path: '/',
+      name: 'service',
+      component: () => import('@/pages/Home.vue'),
+    },
+    {
+      path: '/archive',
+      name: 'archive',
+      component: () => import('@/pages/Home.vue'),
+    },
+    {
+      path: '/consult/:applicationId?',
+      name: 'consult',
+      component: () => import('@/pages/Home.vue'),
+    },
+    {
       path: '/:conversationId?',
       name: 'home',
       component: () => import('@/pages/Home.vue'),
@@ -58,7 +73,7 @@ router.beforeEach(
       if (to.name !== 'login' && !isLoggedIn()) {
         return { name: 'login' }
       } else if (to.name === 'login' && isLoggedIn()) {
-        return { name: 'home' }
+        return { name: 'service' }
       } else {
         return
       }
