@@ -125,8 +125,9 @@ watch(
             return;
         }
 
-        if (!localSelectedAgentId.value && props.agentListItems.length > 0) {
-            localSelectedAgentId.value = props.agentListItems[0].id;
+        const firstAgent = props.agentListItems[0];
+        if (!localSelectedAgentId.value && firstAgent) {
+            localSelectedAgentId.value = firstAgent.id;
         }
     },
     { immediate: true },

@@ -24,13 +24,6 @@ import ServiceHome from '@/components/ServiceHome.vue'
 import ArchiveHome from '@/components/ArchiveHome.vue'
 import CommonTopNav from '@/components/CommonTopNav.vue'
 
-interface SelectedAgentCard {
-  id: string
-  agentType: string
-  title: string
-  desc: string
-}
-
 type TopNavTab = 'archive' | 'consult' | 'service'
 
 const router = useRouter()

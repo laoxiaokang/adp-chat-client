@@ -248,8 +248,8 @@ class CoreAccount:
         # SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, customer_id + name + str(timestamp)))
         msg = f'{customer_id}{name}{extra_info}{timestamp}'
         ts = int(time.time())
-        if abs(timestamp - ts) > 60:
-            err_msg = f'timestamp diff too much (abs({timestamp} - {ts}) = {abs(timestamp - ts)}) > 60'
+        if abs(timestamp - ts) > 300:
+            err_msg = f'timestamp diff too much (abs({timestamp} - {ts}) = {abs(timestamp - ts)}) > 300'
             logging.error(f'[customer_auth] {err_msg}')
             raise CustomerAccountSign(err_msg)
         sign = hmac.new(
