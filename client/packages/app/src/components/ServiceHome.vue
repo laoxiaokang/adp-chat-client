@@ -156,7 +156,6 @@ const toolItems = [
           type="button"
           class="service-home__service-item"
           :disabled="loading"
-          @click="emit('openService', item.id)"
         >
           <span class="service-home__service-icon">
             <img :src="item.icon" :alt="item.title" />
@@ -214,7 +213,6 @@ const toolItems = [
             type="button"
             class="service-home__tool-item"
             :disabled="loading"
-            @click="emit('openService', item.id)"
           >
             <span class="service-home__tool-main">
               <span class="service-home__tool-icon">
@@ -239,7 +237,6 @@ const toolItems = [
           type="button"
           class="service-home__consult-button"
           :disabled="loading"
-          @click="emit('openService', '1')"
         >
           <img :src="consultBubbleImg" alt="consult" />
           <span>咨询SSdoctor!</span>
