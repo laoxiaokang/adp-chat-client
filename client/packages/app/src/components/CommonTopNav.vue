@@ -2,12 +2,15 @@
 type TopNavTab = 'archive' | 'consult' | 'service'
 type TopNavTone = 'light' | 'dark'
 
-const props = withDefaults(defineProps<{
-  activeTab: TopNavTab
-  tone?: TopNavTone
-}>(), {
-  tone: 'dark',
-})
+const props = withDefaults(
+  defineProps<{
+    activeTab: TopNavTab
+    tone?: TopNavTone
+  }>(),
+  {
+    tone: 'dark'
+  }
+)
 
 const emit = defineEmits<{
   (e: 'select', tab: TopNavTab): void
@@ -16,12 +19,12 @@ const emit = defineEmits<{
 const items: Array<{ key: TopNavTab; label: string }> = [
   { key: 'archive', label: '档案' },
   { key: 'consult', label: '咨询' },
-  { key: 'service', label: '服务' },
+  { key: 'service', label: '服务' }
 ]
 </script>
 
 <template>
-  <nav class="top-nav" :class="`top-nav--${props.tone}`" aria-label="main navigation">
+  <nav class="top-nav" :class="`top-nav--dark`" aria-label="main navigation">
     <button
       v-for="item in items"
       :key="item.key"
@@ -51,7 +54,9 @@ const items: Array<{ key: TopNavTab; label: string }> = [
   line-height: 1;
   font-weight: 500;
   cursor: pointer;
-  transition: color 0.2s ease, opacity 0.2s ease;
+  transition:
+    color 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .top-nav--light .top-nav__item {

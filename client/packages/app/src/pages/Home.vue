@@ -144,10 +144,39 @@ const isConsultView = computed(() => currentTab.value === 'consult')
 const navTone = computed<'light' | 'dark'>(() =>
   isConsultView.value ? 'dark' : 'light'
 )
+const showLightHeaderGradient = ref(false)
+const lastScrollTop = ref(0)
 
 const shellStyle = computed(() => ({
   '--consult-medical-bg': `url("${medicalHomeBg}")`
 }))
+
+const handlePageScroll = (event: Event) => {
+  if (navTone.value !== 'light') {
+    return
+  }
+
+  const target = event.target as HTMLElement | null
+  if (!target) {
+    return
+  }
+
+  const currentTop = target.scrollTop
+  if (currentTop <= 0) {
+    showLightHeaderGradient.value = false
+    lastScrollTop.value = 0
+    return
+  }
+
+  const delta = currentTop - lastScrollTop.value
+  if (delta < -1) {
+    showLightHeaderGradient.value = true
+  } else if (delta > 1) {
+    showLightHeaderGradient.value = false
+  }
+
+  lastScrollTop.value = currentTop
+}
 
 const updateFromUrl = () => {
   if (route.name === 'service' || route.name === 'archive') {
@@ -239,6 +268,8 @@ const ensureApplicationsLoaded = async () => {
 }
 
 watch(currentTab, async value => {
+  showLightHeaderGradient.value = false
+  lastScrollTop.value = 0
   if (value !== 'consult') {
     await ensureApplicationsLoaded()
   }
@@ -474,7 +505,13 @@ const handleConversationChange = (conversationId: string) => {
   >
     <header
       class="home-shell__header"
-      :class="`home-shell__header--${navTone}`"
+      :class="[
+        `home-shell__header--${navTone}`,
+        {
+          'home-shell__header--light-scrolling-up':
+            navTone === 'light' && showLightHeaderGradient
+        }
+      ]"
     >
       <div class="home-shell__header-inner">
         <CommonTopNav
@@ -520,7 +557,7 @@ const handleConversationChange = (conversationId: string) => {
       </div>
     </div>
 
-    <div v-else class="home-shell__scroll-body">
+    <div v-else class="home-shell__scroll-body" @scroll.passive="handlePageScroll">
       <div class="home-shell__page">
         <ServiceHome
           v-if="isServiceView"
@@ -596,9 +633,15 @@ const handleConversationChange = (conversationId: string) => {
 .home-shell__header-inner {
   padding: 24px 18px 8px;
   pointer-events: auto;
+  transition: background 0.2s ease, backdrop-filter 0.2s ease;
 }
 
 .home-shell__header--light .home-shell__header-inner {
+  background: transparent;
+  backdrop-filter: none;
+}
+
+.home-shell__header--light-scrolling-up .home-shell__header-inner {
   background: linear-gradient(
     180deg,
     rgba(88, 165, 255, 0.84) 0%,

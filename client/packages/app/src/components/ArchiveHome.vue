@@ -146,8 +146,12 @@ const purchaseRecords = [
             class="archive-home__purchase-item"
           >
             <div class="archive-home__purchase-top">
-              <h3 class="archive-home__purchase-name">{{ item.medicineName }}</h3>
-              <span class="archive-home__purchase-status">{{ item.status }}</span>
+              <h3 class="archive-home__purchase-name">
+                {{ item.medicineName }}
+              </h3>
+              <span class="archive-home__purchase-status">{{
+                item.status
+              }}</span>
             </div>
             <p class="archive-home__purchase-spec">{{ item.spec }}</p>
             <div class="archive-home__purchase-meta">
@@ -155,8 +159,12 @@ const purchaseRecords = [
               <span>{{ item.orderDate }}</span>
             </div>
             <div class="archive-home__purchase-footer">
-              <span class="archive-home__purchase-id">订单号 {{ item.id }}</span>
-              <strong class="archive-home__purchase-amount">{{ item.amount }}</strong>
+              <span class="archive-home__purchase-id"
+                >订单号 {{ item.id }}</span
+              >
+              <strong class="archive-home__purchase-amount">{{
+                item.amount
+              }}</strong>
             </div>
           </article>
         </div>
@@ -219,18 +227,21 @@ const purchaseRecords = [
   padding: 0;
   background: transparent;
   display: inline-flex;
+  flex: 0 0 auto;
   flex-direction: column;
   align-items: flex-start;
   justify-content: flex-start;
   min-height: 50px;
   color: #111111;
+  margin-right: 8px;
 }
 
 .nav__text {
   font-size: 16px;
   line-height: 1;
   font-weight: 500;
-  margin-right: 24px;
+  margin-right: 0;
+  white-space: nowrap;
   color: #111111;
   transition:
     color 0.2s ease,

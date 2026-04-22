@@ -12,6 +12,10 @@ const router = createRouter({
   routes: [
     {
       path: '/',
+      redirect: { name: 'consult' },
+    },
+    {
+      path: '/service',
       name: 'service',
       component: () => import('@/pages/Home.vue'),
     },
@@ -78,7 +82,7 @@ router.beforeEach(
       if (to.name !== 'login' && !isLoggedIn()) {
         return { name: 'login' }
       } else if (to.name === 'login' && isLoggedIn()) {
-        return { name: 'service' }
+        return { name: 'consult' }
       } else {
         return
       }
