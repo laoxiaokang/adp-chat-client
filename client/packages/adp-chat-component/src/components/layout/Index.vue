@@ -46,11 +46,13 @@ import type {
     ChatI18n, 
     ChatItemI18n, 
     SenderI18n,
+    MobileProps,
     ThemeProps,
     OverlayProps
 } from '../../model/type';
 import { 
     defaultLanguageOptions,
+    mobilePropsDefaults,
     themePropsDefaults,
     overlayPropsDefaults,
     defaultChatI18n,
@@ -63,7 +65,7 @@ import {
     defaultSideI18nEn
 } from '../../model/type';
 
-export interface Props extends ThemeProps, OverlayProps {
+export interface Props extends ThemeProps, MobileProps, OverlayProps {
     /** 当前语言标识，用于自动选择内部默认 i18n（如 'zh-CN'、'en-US'） */
     language?: string;
     /** 是否为浮层模式 */
@@ -124,6 +126,7 @@ export interface Props extends ThemeProps, OverlayProps {
 
 const props = withDefaults(defineProps<Props>(), {
     ...themePropsDefaults,
+    ...mobilePropsDefaults,
     ...overlayPropsDefaults,
     language: 'zh-CN',
     isOverlay: false,
