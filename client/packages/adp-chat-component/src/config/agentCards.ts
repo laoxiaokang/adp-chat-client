@@ -33,8 +33,8 @@ export const agentCardDefinitions: AgentCardDefinition[] = [
   {
     id: '5',
     agentType: '5',
-    title: '健康管理',
-    desc: 'mock 服务位，后续可接第五种问答场景',
+    title: '药品说明书',
+    desc: '根据药名查询药品说明',
   },
 ]
 
