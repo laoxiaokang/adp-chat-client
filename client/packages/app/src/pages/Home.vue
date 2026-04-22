@@ -357,6 +357,9 @@ const updateUrl = (query?: Record<string, string>) => {
         query: nextQuery
       })
     } else {
+      if (route.name === 'consult' || route.name === 'app') {
+        return
+      }
       router.push({ name: 'service' })
     }
   } else {
@@ -453,6 +456,11 @@ const handleDataLoaded = (
 }
 
 const handleConversationChange = (conversationId: string) => {
+  if (!conversationId) {
+    currentConversationId.value = ''
+    return
+  }
+
   currentConversationId.value = conversationId
   updateUrl()
 }
