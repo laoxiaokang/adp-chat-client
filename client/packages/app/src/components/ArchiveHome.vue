@@ -28,18 +28,56 @@ const goToReportUpload = () => {
 const navItems = [
   { key: 'health', label: '健康数据' },
   { key: 'inspect', label: '检测数据' },
-  { key: 'report', label: '报告单' }
+  { key: 'report', label: '报告单' },
+  { key: 'purchase', label: '购药记录' }
 ] as const
 
 type ArchiveSectionKey = (typeof navItems)[number]['key']
+type ImageSectionKey = Exclude<ArchiveSectionKey, 'purchase'>
 
 const activeSectionKey = ref<ArchiveSectionKey>('health')
 
-const sectionImages: Record<ArchiveSectionKey, string[]> = {
+const sectionImages: Record<ImageSectionKey, string[]> = {
   health: [healthDataImg2, healthDataImg3, healthDataImg1],
   inspect: [inspectDataImg],
   report: [reportDataImg]
 }
+
+const imageSectionKeys: ImageSectionKey[] = ['health', 'inspect', 'report']
+
+const isImageSection = (key: ArchiveSectionKey): key is ImageSectionKey => {
+  return imageSectionKeys.includes(key as ImageSectionKey)
+}
+
+const purchaseRecords = [
+  {
+    id: 'P001',
+    medicineName: '阿托伐他汀钙片',
+    spec: '20mg*7片',
+    pharmacy: '协和互联网医院药房',
+    orderDate: '2026-04-20',
+    amount: '¥38.50',
+    status: '已完成'
+  },
+  {
+    id: 'P002',
+    medicineName: '盐酸二甲双胍片',
+    spec: '0.5g*20片',
+    pharmacy: '华润健康药房',
+    orderDate: '2026-04-16',
+    amount: '¥26.00',
+    status: '配送中'
+  },
+  {
+    id: 'P003',
+    medicineName: '缬沙坦胶囊',
+    spec: '80mg*14粒',
+    pharmacy: '仁济云药房',
+    orderDate: '2026-04-09',
+    amount: '¥52.90',
+    status: '已完成'
+  }
+]
 </script>
 
 <template>
@@ -83,8 +121,15 @@ const sectionImages: Record<ArchiveSectionKey, string[]> = {
           </button>
         </div>
 
-        <div class="archive-home__body">
-          <div class="btn" @click="goToReportUpload">+ 上传新报告单</div>
+        <div v-if="isImageSection(activeSectionKey)" class="archive-home__body">
+          <button
+            v-if="activeSectionKey === 'report'"
+            type="button"
+            class="archive-home__upload-btn"
+            @click="goToReportUpload"
+          >
+            + 上传新报告单
+          </button>
           <img
             v-for="(image, index) in sectionImages[activeSectionKey]"
             :key="`${activeSectionKey}-${index}`"
@@ -92,6 +137,28 @@ const sectionImages: Record<ArchiveSectionKey, string[]> = {
             :src="image"
             :alt="`${activeSectionKey}-${index}`"
           />
+        </div>
+
+        <div v-else class="archive-home__purchase-list">
+          <article
+            v-for="item in purchaseRecords"
+            :key="item.id"
+            class="archive-home__purchase-item"
+          >
+            <div class="archive-home__purchase-top">
+              <h3 class="archive-home__purchase-name">{{ item.medicineName }}</h3>
+              <span class="archive-home__purchase-status">{{ item.status }}</span>
+            </div>
+            <p class="archive-home__purchase-spec">{{ item.spec }}</p>
+            <div class="archive-home__purchase-meta">
+              <span>{{ item.pharmacy }}</span>
+              <span>{{ item.orderDate }}</span>
+            </div>
+            <div class="archive-home__purchase-footer">
+              <span class="archive-home__purchase-id">订单号 {{ item.id }}</span>
+              <strong class="archive-home__purchase-amount">{{ item.amount }}</strong>
+            </div>
+          </article>
         </div>
       </section>
     </main>
@@ -193,17 +260,97 @@ const sectionImages: Record<ArchiveSectionKey, string[]> = {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
 
-  .btn {
-    width: 90%;
-    margin: 0 auto;
-    background-color: #248ff7;
-    padding: 12px;
-    border-radius: 24px;
-    text-align: center;
-    color: #fff;
-    margin-bottom: 12px;
-  }
+.archive-home__upload-btn {
+  width: 90%;
+  margin: 0 auto 12px;
+  background-color: #248ff7;
+  border: 0;
+  padding: 12px;
+  border-radius: 24px;
+  text-align: center;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.archive-home__purchase-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.archive-home__purchase-item {
+  border-radius: 16px;
+  padding: 14px 14px 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+  box-shadow: 0 10px 22px rgba(83, 123, 175, 0.12);
+  border: 1px solid rgba(69, 139, 228, 0.14);
+}
+
+.archive-home__purchase-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.archive-home__purchase-name {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.2;
+  color: #24364d;
+  font-weight: 700;
+}
+
+.archive-home__purchase-status {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(36, 143, 247, 0.12);
+  color: #1f79d3;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+.archive-home__purchase-spec {
+  margin: 7px 0 0;
+  color: #617086;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.archive-home__purchase-meta {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #7f8ea3;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.archive-home__purchase-footer {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.archive-home__purchase-id {
+  color: #9ba8b8;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.archive-home__purchase-amount {
+  color: #207ce0;
+  font-size: 17px;
+  line-height: 1.1;
+  font-weight: 700;
 }
 
 .archive-home__section-image {
