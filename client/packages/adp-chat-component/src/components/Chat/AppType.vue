@@ -11,6 +11,7 @@ import reportIcon from '../../assets/img/report-icon.png'
 import doctorImage from '../../assets/img/ssdoctor.png'
 import questionIcon from '../../assets/img/question-icon.png'
 import ConversationTopActions from './ConversationTopActions.vue'
+import bookIcon from '@/assets/service-home/book.png'
 
 interface AgentCardItem {
   id: string
@@ -36,7 +37,7 @@ const agentCardIconMap: Record<string, string> = {
   '2': medicineIcon,
   '3': inquiryIcon,
   '4': reportIcon,
-  '5': healthIcon
+  '5': bookIcon
 }
 
 const staticQuestions = [

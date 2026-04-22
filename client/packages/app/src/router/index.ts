@@ -21,6 +21,11 @@ const router = createRouter({
       component: () => import('@/pages/Home.vue'),
     },
     {
+      path: '/report-upload',
+      name: 'report-upload',
+      component: () => import('@/components/ReportUpload.vue'),
+    },
+    {
       path: '/consult/:applicationId?',
       name: 'consult',
       component: () => import('@/pages/Home.vue'),

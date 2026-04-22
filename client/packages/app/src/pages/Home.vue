@@ -7,8 +7,7 @@ import {
   getAgentCardByTitle,
   type ApiConfig,
   type Application,
-  type ChatConversation,
-  type SelectedAgentCard
+  type ChatConversation
 } from 'adp-chat-component'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useUiStore } from '@/stores/ui'
@@ -23,6 +22,13 @@ import medicalHomeBg from '../../../adp-chat-component/src/assets/img/medical-ho
 import ServiceHome from '@/components/ServiceHome.vue'
 import ArchiveHome from '@/components/ArchiveHome.vue'
 import CommonTopNav from '@/components/CommonTopNav.vue'
+
+interface SelectedAgentCard {
+  id: string
+  agentType: string
+  title: string
+  desc: string
+}
 
 type TopNavTab = 'archive' | 'consult' | 'service'
 
@@ -292,6 +298,9 @@ const goToArchive = async () => {
 }
 
 const goToConsult = async (cardId?: string) => {
+  if (!cardId) {
+    return
+  }
   await ensureApplicationsLoaded()
 
   const nextCard = cardId
@@ -324,10 +333,6 @@ const goToConsult = async (cardId?: string) => {
 }
 
 const handleTopNavSelect = async (tab: TopNavTab) => {
-  if (tab === currentTab.value) {
-    return
-  }
-
   if (tab === 'service') {
     goToService()
     return
@@ -338,7 +343,7 @@ const handleTopNavSelect = async (tab: TopNavTab) => {
     return
   }
 
-  await goToConsult()
+  await goToConsult('1')
 }
 
 const updateUrl = (query?: Record<string, string>) => {
@@ -477,10 +482,11 @@ const handleConversationChange = (conversationId: string) => {
         <ADPChat
           :apiConfig="apiConfig"
           :autoLoad="true"
+          :isMobile="true"
           :theme="uiStore.theme || 'light'"
           :language="uiStore.language || 'zh'"
           :languageOptions="languageOptions"
-          :isSidePanelOverlay="uiStore.isMobile"
+          :isSidePanelOverlay="true"
           :showCloseButton="false"
           :showOverlayButton="false"
           :logoUrl="Logo"
@@ -651,11 +657,11 @@ const handleConversationChange = (conversationId: string) => {
 
 @media (min-width: 768px) {
   .home-shell__header {
-    width: min(100%, 460px);
+    width: min(100%, 430px);
   }
 
   .home-shell__page {
-    max-width: 460px;
+    max-width: 430px;
   }
 }
 </style>

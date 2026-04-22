@@ -293,6 +293,7 @@ const actualAutoLoad = computed(() => props.autoLoad);
                 :width="actualWidth"
                 :height="actualHeight"
                 :container="actualContainer"
+                :isMobile="props.isMobile"
                 :isSidePanelOverlay="actualIsSidePanelOverlay"
                 :logoUrl="actualLogoUrl"
                 :logoTitle="actualLogoTitle"

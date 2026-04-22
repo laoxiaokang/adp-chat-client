@@ -194,6 +194,10 @@ const mergedChatItemI18n = computed(() => ({
 
 // 计算是否为移动端模式（内部计算，不再依赖外部传入）
 const isMobile = computed(() => {
+    if (props.isMobile) {
+        return true;
+    }
+
     return computeIsMobile({
         isOverlay: props.isOverlay,
         width: props.width,

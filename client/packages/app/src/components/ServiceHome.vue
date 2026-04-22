@@ -18,6 +18,11 @@ import toolDietImg from '@/assets/service-home/tool-diet.png'
 import toolReminderImg from '@/assets/service-home/tool-reminder.png'
 import toolCalendarImg from '@/assets/service-home/tool-calendar.png'
 import chevronRightImg from '@/assets/service-home/chevron-right.png'
+import fakeServiceImg from '@/assets/service-home/fake-1.png'
+import fake1Img from '@/assets/service-home/f1.png'
+import fake2Img from '@/assets/service-home/f2.png'
+import fake3Img from '@/assets/service-home/f3.png'
+import fake4Img from '@/assets/service-home/f4.png'
 
 defineProps<{
   loading?: boolean
@@ -29,7 +34,7 @@ const emit = defineEmits<{
 
 const badges = [
   { icon: starImg, text: '执业认证' },
-  { icon: shieldImg, text: '健康助手' },
+  { icon: shieldImg, text: '健康助手' }
 ]
 
 const serviceCards = [
@@ -37,6 +42,26 @@ const serviceCards = [
   { id: '3', title: '症状自查', icon: serviceSelfCheckImg },
   { id: '4', title: '报告解读', icon: serviceReportImg },
   { id: '2', title: '用药助手', icon: serviceMedicineImg },
+  {
+    id: '',
+    title: '健康日历',
+    icon: fake1Img
+  },
+  {
+    id: '',
+    title: '饮食记录',
+    icon: fake4Img
+  },
+  {
+    id: '',
+    title: '在线商城',
+    icon: fake3Img
+  },
+  {
+    id: '',
+    title: '基因检测',
+    icon: fake2Img
+  }
 ]
 
 const healthMetrics = [
@@ -45,29 +70,29 @@ const healthMetrics = [
     value: '69',
     unit: '',
     desc: '正常范围 60-100 bpm',
-    icon: metricHeartImg,
+    icon: metricHeartImg
   },
   {
     title: '血压',
     value: '120/80',
     unit: '',
     desc: '收缩压 / 舒张压 mmHg',
-    icon: metricPressureImg,
+    icon: metricPressureImg
   },
   {
     title: '睡眠',
     value: '7.5h',
     unit: '',
     desc: '深度睡眠时间 2.1h',
-    icon: metricSleepImg,
+    icon: metricSleepImg
   },
   {
     title: '今日步数',
     value: '8907',
     unit: '',
     desc: '目标 10,000 步',
-    icon: metricStepsImg,
-  },
+    icon: metricStepsImg
+  }
 ]
 
 const toolItems = [
@@ -75,33 +100,36 @@ const toolItems = [
     id: '4',
     title: '体检报告上传',
     desc: 'AI 智能解读您的体检报告',
-    icon: toolUploadImg,
+    icon: toolUploadImg
   },
   {
     id: '1',
     title: '饮食记录',
     desc: '智能分析每日营养摄入',
-    icon: toolDietImg,
+    icon: toolDietImg
   },
   {
     id: '2',
     title: '用药提醒',
     desc: '按时提醒，科学用药管理',
-    icon: toolReminderImg,
+    icon: toolReminderImg
   },
   {
     id: '1',
     title: '健康日历',
     desc: '记录健康里程碑，追踪趋势',
-    icon: toolCalendarImg,
-  },
+    icon: toolCalendarImg
+  }
 ]
 </script>
 
 <template>
   <div class="service-home">
-    <section class="service-home__hero" :style="{ backgroundImage: `url(${heroBg})` }">
-      <div class="service-home__intro">
+    <section
+      class="service-home__hero"
+      :style="{ backgroundImage: `url(${heroBg})` }"
+    >
+      <div class="service-home__intro" v-if="false">
         <img class="service-home__doctor" :src="doctorImg" alt="SSdoctor" />
         <div class="service-home__intro-copy">
           <p class="service-home__greeting">您好，我是SSdoctor!</p>
@@ -167,6 +195,10 @@ const toolItems = [
         </div>
       </section>
 
+      <section class="service-home__card--fake">
+        <img class="fakeImage" :src="fakeServiceImg" alt="fake-service" />
+      </section>
+
       <section class="service-home__card service-home__section">
         <div class="service-home__section-header">
           <div class="service-home__section-title-wrap">
@@ -193,7 +225,11 @@ const toolItems = [
                 <span class="service-home__tool-desc">{{ item.desc }}</span>
               </span>
             </span>
-            <img class="service-home__tool-arrow" :src="chevronRightImg" alt="enter" />
+            <img
+              class="service-home__tool-arrow"
+              :src="chevronRightImg"
+              alt="enter"
+            />
           </button>
         </div>
       </section>
@@ -214,6 +250,10 @@ const toolItems = [
 </template>
 
 <style scoped>
+.fakeImage {
+  width: 100%;
+  height: auto;
+}
 .service-home {
   min-height: 100%;
   background: transparent;
@@ -222,10 +262,10 @@ const toolItems = [
 
 .service-home__hero {
   position: relative;
-  min-height: 275px;
+  min-height: 240px;
   padding: 56px 14px 88px;
-  background-position: center top;
-  background-size: cover;
+  background-position: center bottom;
+  background-size: 100% 100%;
   background-repeat: no-repeat;
 }
 
@@ -285,7 +325,7 @@ const toolItems = [
 .service-home__content {
   position: relative;
   z-index: 1;
-  margin-top: -72px;
+  margin-top: -172px;
   padding: 0 14px 28px;
 }
 
@@ -293,6 +333,10 @@ const toolItems = [
   background: rgba(255, 255, 255, 0.94);
   border-radius: 20px;
   box-shadow: 0 18px 36px rgba(123, 148, 189, 0.14);
+}
+
+.service-home__card--fake {
+  margin-top: 14px;
 }
 
 .service-home__services {
@@ -351,6 +395,7 @@ const toolItems = [
 .service-home__section-marker {
   width: 3px;
   height: 16px;
+  margin-left: 8px;
   border-radius: 999px;
   background: linear-gradient(180deg, #59a8ff 0%, #2388ff 100%);
 }
@@ -358,9 +403,10 @@ const toolItems = [
 .service-home__section-title {
   margin: 0;
   color: #4d5665;
-  font-size: 21px;
+  font-size: 18px;
   line-height: 1;
-  font-weight: 700;
+  font-weight: 900;
+  margin-left: -2px;
 }
 
 .service-home__more-button {
