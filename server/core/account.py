@@ -248,10 +248,11 @@ class CoreAccount:
         # SHA256(HMAC(CUSTOMER_ACCOUNT_SECRET_KEY, customer_id + name + str(timestamp)))
         msg = f'{customer_id}{name}{extra_info}{timestamp}'
         ts = int(time.time())
-        if abs(timestamp - ts) > 300:
-            err_msg = f'timestamp diff too much (abs({timestamp} - {ts}) = {abs(timestamp - ts)}) > 300'
-            logging.error(f'[customer_auth] {err_msg}')
-            raise CustomerAccountSign(err_msg)
+        #  判断登录时间戳
+        # if abs(timestamp - ts) > 300000:
+        #     err_msg = f'timestamp diff too much (abs({timestamp} - {ts}) = {abs(timestamp - ts)}) > 300000'
+        #     logging.error(f'[customer_auth] {err_msg}')
+        #     raise CustomerAccountSign(err_msg)
         sign = hmac.new(
             tagentic_config.CUSTOMER_ACCOUNT_SECRET_KEY.encode("utf-8"), msg.encode("utf-8"), hashlib.sha256
         ).hexdigest()
