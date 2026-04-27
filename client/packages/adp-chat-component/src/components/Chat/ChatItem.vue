@@ -117,6 +117,10 @@ const primaryMessage = computed(() => {
   return list.find(msg => msg.Type === 'reply')
 })
 
+const shouldSkipWidgetRenderInStream = computed(() => {
+  return props.isStreamLoad && props.isLastMsg && !isFromSelf.value
+})
+
 const extractMessageText = (message?: Message) => {
   if (!message?.Contents?.length) return ''
   return message.Contents.map(content => {
@@ -125,6 +129,9 @@ const extractMessageText = (message?: Message) => {
       parts.push(content.Text)
     }
     if (content.Type === 'widget' && content.Widget) {
+      if (shouldSkipWidgetRenderInStream.value) {
+        return ''
+      }
       const widgetMarkdown = widgetContentToMarkdown(content)
       if (widgetMarkdown) {
         parts.push(widgetMarkdown)
