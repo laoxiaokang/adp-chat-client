@@ -192,7 +192,8 @@ async function copyContent(event: any, content: string | undefined, type: string
  * 判断是否已评分
  */
 const isRated = () => {
-    return recordScore.value != ScoreValue.Unknown && recordScore.value !== undefined;
+    const score = recordScore.value;
+    return score !== undefined && score !== null && score !== ScoreValue.Unknown;
 };
 
 /**
@@ -361,6 +362,7 @@ const referenceDialogTitle = computed(() => {
                             :quoteInfos="quoteInfos"
                             :language="language"
                             :recordId="item.RecordId"
+                            :enableScale="isMobile"
                             @widgetEvent="handleWidgetEvent"
                         />
                     </div>
@@ -386,6 +388,7 @@ const referenceDialogTitle = computed(() => {
                         :language="language"
                         :recordId="item.RecordId"
                         :disable="!isLastMsg"
+                        :enableScale="isMobile"
                         @widgetEvent="handleWidgetEvent"
                     />
                     <OptionCard v-if="optionCards && optionCards.length" :cards="optionCards" :sendMessage="handleSendMessage" />
@@ -453,7 +456,7 @@ const referenceDialogTitle = computed(() => {
                             <button
                                 type="button"
                                 class="action-pill"
-                                :class="{ disabled: isRated() && recordScore !== ScoreValue.Like, 'not-allowed': isRated() || !canRate }"
+                                :class="{ disabled: !canRate || (isRated() && recordScore !== ScoreValue.Like), 'not-allowed': isRated() || !canRate }"
                                 @click="rate(item, ScoreValue.Like)"
                             >
                                 <CustomizedIcon
@@ -469,7 +472,7 @@ const referenceDialogTitle = computed(() => {
                             <button
                                 type="button"
                                 class="action-pill"
-                                :class="{ disabled: isRated() && recordScore !== ScoreValue.Dislike, 'not-allowed': isRated() || !canRate }"
+                                :class="{ disabled: !canRate || (isRated() && recordScore !== ScoreValue.Dislike), 'not-allowed': isRated() || !canRate }"
                                 @click="rate(item, ScoreValue.Dislike)"
                             >
                                 <CustomizedIcon
