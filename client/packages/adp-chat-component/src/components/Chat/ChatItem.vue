@@ -374,6 +374,7 @@ const referenceDialogTitle = computed(() => {
                     v-else 
                     :content="displayText" 
                     role="assistant" 
+                    :isStreamLoad="isStreamLoad && isLastMsg"
                     :theme="theme" 
                     :quoteInfos="quoteInfos"
                     :language="language"
