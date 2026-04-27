@@ -3,7 +3,6 @@
 import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { ChatSender as TChatSender } from '@tdesign-vue-next/chat';
 import { MessagePlugin, Upload as TUpload, Tooltip as TTooltip } from 'tdesign-vue-next';
-import type { UploadFile, RequestMethodResponse } from 'tdesign-vue-next';
 import type { FileProps } from '../../model/file';
 import { MessageCode, getMessage } from '../../model/messages';
 import type { ChatRelatedProps, SenderI18n, SelectedAgentCard, SenderAgentListItem } from '../../model/type';
@@ -15,6 +14,16 @@ import { getAsrUrl } from '../../service/api';
 import voiceIcon from '../../assets/img/voice-icon.png';
 import plusCircleIcon from '../../assets/img/plus-circle-icon.png';
 import menuIcon from '../../assets/img/menu.png';
+
+interface UploadLikeFile {
+    raw?: File;
+    type?: string;
+}
+
+interface UploadRequestResult {
+    status: 'success' | 'fail';
+    response: Record<string, unknown>;
+}
 
 export interface Props extends ChatRelatedProps {
     /** 是否正在流式加载 */
@@ -137,14 +146,14 @@ const handleInput = (value: string) => {
     inputValue.value = value;
 };
 
-const handleFileSelect = async function (files: UploadFile | UploadFile[]): Promise<RequestMethodResponse> {
+const handleFileSelect = async function (files: UploadLikeFile | File | Array<UploadLikeFile | File>): Promise<UploadRequestResult> {
     const fileArray = Array.isArray(files) ? files : [files];
     if (fileArray.length <= 0) return { status: 'success', response: {} };
     const allowed = ['image/png', 'image/jpg', 'image/jpeg', 'image/bmp'];
     const validFiles: File[] = [];
 
-    fileArray.forEach((item: UploadFile) => {
-        const file = item.raw || item;
+    fileArray.forEach((item) => {
+        const file = item instanceof File ? item : (item.raw ?? item);
         if (file instanceof File && !allowed.includes(file.type)) {
             const text = i18n.value.notSupport || getMessage(MessageCode.FILE_FORMAT_NOT_SUPPORT).message;
             MessagePlugin.error(text);

@@ -60,7 +60,7 @@
                     </InfiniteLoading>
                     <div class="chat-item__content" v-for="(item, index) in chatList" :key="item.RecordId">
                         <Checkbox class="share-checkbox" :checked="selectedIds?.includes(item.RecordId)"
-                            v-if="isSelecting" @change="(e) => onSelectIds(item.RecordId, e)" />
+                            v-if="isSelecting" @change="(checked: boolean) => onSelectIds(item.RecordId, checked)" />
                         <div style="width: 100%">
                             <ChatItem 
                                 :isLastMsg="index === (chatList.length - 1)" 
@@ -655,6 +655,7 @@ const onSelectIds = (RecordId: string | undefined, checked: boolean) => {
         selectedIds.value = [...newArray]
     }
 }
+
 
 /**
  * 处理文件上传
