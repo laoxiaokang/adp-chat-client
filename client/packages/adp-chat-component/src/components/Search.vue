@@ -4,7 +4,8 @@ import CustomizedIcon from './CustomizedIcon.vue';
 import type { ThemeProps } from '../model/type';
 import { themePropsDefaults } from '../model/type';
 import { Input as TInput } from 'tdesign-vue-next';
-import type { InputValue } from 'tdesign-vue-next';
+
+type InputValue = string | number;
 
 // TInput 已导入，模板中使用 TInput 组件
 
