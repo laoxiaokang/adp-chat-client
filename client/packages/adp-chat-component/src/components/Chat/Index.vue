@@ -2,6 +2,16 @@
 <template>
     <!-- 聊天内容容器 -->
     <div id="chat-content" class="chat-box">
+        <div
+            v-if="!isLanding"
+            class="chat-page-actions"
+            :class="{ 'chat-page-actions--mobile': isMobile }"
+        >
+            <ConversationTopActions
+                @createConversation="handleCreateConversation"
+                @toggleSidebar="handleToggleSidebar"
+            />
+        </div>
         <!-- 聊天组件 -->
         <TChat ref="chatRef" :class="{ isChatting: isChatting }" :reverse="false" style="height: 100%" :clear-history="false"
             @scroll="handleChatScroll" @clear="clearConfirm">
@@ -26,11 +36,6 @@
             <!-- 聊天消息列表 -->
             <template v-else>
                 <div class="content selectable" :class="{ isMobile: isMobile, isFull: chatList.length <= 0 }">
-                    <ConversationTopActions
-                        class="chat-page-actions"
-                        @createConversation="handleCreateConversation"
-                        @toggleSidebar="handleToggleSidebar"
-                    />
                     <InfiniteLoading v-if="chatId" :identifier="chatId" direction="top" @infinite="infiniteHandler">
                         <template #spinner>
                             <div>
@@ -724,8 +729,29 @@ defineExpose({
 }
 
 .chat-page-actions {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    box-sizing: border-box;
     width: 100%;
-    margin: 0 0 12px;
+    min-height: 56px;
+    padding: 8px calc(var(--td-comp-paddingLR-xl) - var(--td-size-4)) 10px;
+    contain: layout paint;
+    pointer-events: none;
+    transform: translateZ(0);
+}
+
+.chat-page-actions :deep(.conversation-actions) {
+    max-width: calc(800px + var(--td-size-4));
+    margin: 0 auto;
+    pointer-events: auto;
+}
+
+.chat-page-actions--mobile {
+    min-height: 52px;
+    padding-bottom: 10px;
 }
 
 .share-setting-container {
@@ -825,17 +851,19 @@ defineExpose({
 
 /* 确保 AppType 组件容器有足够高度实现垂直居中 */
 :deep(.t-chat__list > div) {
-    height: 100%;
+    min-height: 100%;
 }
 
 :deep(.t-chat__list .content) {
     width: 100%;
     max-width: calc(800px + var(--td-size-4));
     margin: 0 auto;
+    box-sizing: border-box;
+    padding-top: 56px;
 }
 
-:deep(.t-chat__list .content.isMobile .chat-page-actions) {
-    margin-bottom: 10px;
+:deep(.t-chat__list .content.isMobile) {
+    padding-top: 52px;
 }
 
 :deep(.share-setting-content .t-card__body) {

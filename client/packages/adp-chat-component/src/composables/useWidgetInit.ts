@@ -52,24 +52,14 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
   }
 
   function setupEventDelegation(container: HTMLElement): void {
-    if (delegationAttached) {
-      return;
-    }
+    if (delegationAttached) return;
     delegationAttached = true;
 
     container.addEventListener('widget-action', ((event: CustomEvent) => {
-      const eventTarget = event.target;
-      const widgetEl = eventTarget instanceof Element
-        ? eventTarget.closest('adp-widget') || eventTarget
-        : null;
-      if (!widgetEl) {
-        return;
-      }
-
+      const widgetEl = (event.target as Element)?.closest?.('adp-widget') || event.target as Element;
+      if (!widgetEl) return;
       const { action } = event.detail || {};
-      if (!action) {
-        return;
-      }
+      if (!action) return;
 
       const { widgetId, widgetRunId } = resolveWidgetIds(widgetEl);
       onWidgetAction?.(action as WidgetActionPayload);
@@ -83,18 +73,10 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
     }) as EventListener);
 
     container.addEventListener('cardsubmit', ((event: CustomEvent) => {
-      const eventTarget = event.target;
-      const widgetEl = eventTarget instanceof Element
-        ? eventTarget.closest('adp-widget') || eventTarget
-        : null;
-      if (!widgetEl) {
-        return;
-      }
-
+      const widgetEl = (event.target as Element)?.closest?.('adp-widget') || event.target as Element;
+      if (!widgetEl) return;
       const { action } = event.detail || {};
-      if (!action) {
-        return;
-      }
+      if (!action) return;
 
       const { widgetId, widgetRunId } = resolveWidgetIds(widgetEl);
       const syntheticEvent = new CustomEvent('widget-event', {
@@ -107,9 +89,7 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
   }
 
   function bindRenderedListener(widgetEl: Element): void {
-    if (widgetEl.hasAttribute('data-rendered-bindable')) {
-      return;
-    }
+    if (widgetEl.hasAttribute('data-rendered-bindable')) return;
     widgetEl.setAttribute('data-rendered-bindable', 'true');
 
     widgetEl.addEventListener('widget-rendered', ((event: CustomEvent) => {
@@ -147,9 +127,7 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
   function scaleWidgetIfNeeded(wrapper: Element): void {
     const scaleValue = enableScale?.();
     const widgetEl = wrapper.querySelector('adp-widget') as HTMLElement | null;
-    if (!widgetEl) {
-      return;
-    }
+    if (!widgetEl) return;
 
     const wrapperEl = wrapper as HTMLElement;
 
@@ -164,9 +142,7 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
       scale = scaleValue;
     } else {
       const parentEl = containerRef.value;
-      if (!parentEl) {
-        return;
-      }
+      if (!parentEl) return;
 
       const containerWidth = parentEl.clientWidth;
       const currentTransform = widgetEl.style.transform;
@@ -198,9 +174,7 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
   }
 
   function scaleAllWidgets(): void {
-    if (!containerRef.value) {
-      return;
-    }
+    if (!containerRef.value) return;
     const wrappers = containerRef.value.querySelectorAll('.adp-widget-wrapper');
     wrappers.forEach((wrapper) => scaleWidgetIfNeeded(wrapper));
   }
@@ -208,14 +182,10 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
   async function initWidgets(): Promise<void> {
     const currentVersion = ++initWidgetsVersion;
 
-    if (!containerRef.value) {
-      return;
-    }
+    if (!containerRef.value) return;
 
     const widgetWrappers = containerRef.value.querySelectorAll('.adp-widget-wrapper');
-    if (widgetWrappers.length === 0) {
-      return;
-    }
+    if (widgetWrappers.length === 0) return;
 
     setupEventDelegation(containerRef.value);
 
@@ -228,9 +198,7 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
         showFallbackJson(widgetWrappers);
         return;
       }
-      if (currentVersion !== initWidgetsVersion) {
-        return;
-      }
+      if (currentVersion !== initWidgetsVersion) return;
     }
 
     if (wasLoaded) {
@@ -240,23 +208,16 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
       } catch {
         // Keep the fallback path below.
       }
-      if (currentVersion !== initWidgetsVersion) {
-        return;
-      }
+      if (currentVersion !== initWidgetsVersion) return;
     }
 
-    if (!containerRef.value) {
-      return;
-    }
-
+    if (!containerRef.value) return;
     const currentWrappers = containerRef.value.querySelectorAll('.adp-widget-wrapper');
     const isDisabled = disable();
 
     currentWrappers.forEach((wrapper) => {
       const widgetEl = wrapper.querySelector('adp-widget');
-      if (!widgetEl) {
-        return;
-      }
+      if (!widgetEl) return;
 
       if (widgetEl.hasAttribute('data-upgraded')) {
         updateWidgetDisable(widgetEl, isDisabled);
@@ -268,9 +229,7 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
       if (parent) {
         const newWidget = document.createElement('adp-widget');
         Array.from(widgetEl.attributes).forEach((attr) => {
-          if (attr.name === 'data-upgraded') {
-            return;
-          }
+          if (attr.name === 'data-upgraded') return;
           newWidget.setAttribute(attr.name, attr.value);
         });
 
@@ -321,9 +280,7 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
   watch(
     disable,
     (newDisable) => {
-      if (!isMounted.value || !containerRef.value) {
-        return;
-      }
+      if (!isMounted.value || !containerRef.value) return;
 
       const widgets = containerRef.value.querySelectorAll('adp-widget');
       widgets.forEach((widget) => {
@@ -337,9 +294,7 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
     watch(
       enableScale,
       () => {
-        if (!isMounted.value) {
-          return;
-        }
+        if (!isMounted.value) return;
         requestAnimationFrame(() => scaleAllWidgets());
       },
       { flush: 'post' },
@@ -357,9 +312,7 @@ export function useWidgetInit(options: UseWidgetInitOptions) {
 
     if (enableScale) {
       resizeHandler = () => {
-        if (resizeTimer) {
-          clearTimeout(resizeTimer);
-        }
+        if (resizeTimer) clearTimeout(resizeTimer);
         resizeTimer = setTimeout(() => {
           resizeTimer = null;
           if (enableScale() && isMounted.value) {

@@ -33,6 +33,7 @@ const emit = defineEmits<{
   display: flex;
   justify-content: flex-end;
   gap: 10px;
+  width: 100%;
 }
 
 .landing-pill {
