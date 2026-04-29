@@ -70,13 +70,19 @@ export function createMarkdownItWidgetPlugin(options: WidgetRenderOptions) {
         let parsedWidgetId = '';
         let parsedWidgetRunId = '';
         try {
-          const widgetObj = JSON.parse(widgetJson);
-          if (widgetObj._adp_widget_meta) {
-            parsedWidgetId = widgetObj._adp_widget_meta.widgetId || '';
-            parsedWidgetRunId = widgetObj._adp_widget_meta.widgetRunId || '';
+          const parsedWidgetObj = JSON.parse(widgetJson) as {
+            _adp_widget_meta?: {
+              widgetId?: string;
+              widgetRunId?: string;
+            };
+          };
+          if (parsedWidgetObj._adp_widget_meta) {
+            parsedWidgetId = parsedWidgetObj._adp_widget_meta.widgetId || '';
+            parsedWidgetRunId = parsedWidgetObj._adp_widget_meta.widgetRunId || '';
           }
         } catch {
-          // Keep fallback empty ids when widget metadata cannot be parsed.
+          // Incomplete streamed fences should stay as code blocks until JSON is complete.
+          return defaultFence(tokens, idx, opts, env, self);
         }
 
         const actualWidgetId = parsedWidgetId || options.widgetId || '';

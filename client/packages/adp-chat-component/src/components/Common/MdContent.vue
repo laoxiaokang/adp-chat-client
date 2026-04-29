@@ -120,11 +120,8 @@ watch(
       Boolean(isStream) && role === 'assistant' && text.length >= 5;
 
     if (!shouldTypewriter) {
-      if (role === 'assistant' && rafId !== null && text.startsWith(displayedContent.value)) {
-        return;
-      }
-      displayedContent.value = text;
       stopTypewriter();
+      displayedContent.value = text;
       return;
     }
 

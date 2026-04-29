@@ -44,9 +44,22 @@ select_instance() {
 stop_instance() {
     local INSTANCE="$1"
     echo "Stopping $INSTANCE..."
-	docker rm -f adp-chat-client-db-$INSTANCE
-	docker rm -f adp-chat-client-$INSTANCE
-	docker network rm adp-chat-client-network-$INSTANCE
+    local DB_CONTAINER="adp-chat-client-db-$INSTANCE"
+    local APP_CONTAINER="adp-chat-client-$INSTANCE"
+    local NETWORK_NAME="adp-chat-client-network-$INSTANCE"
+
+    # 容器/网络不存在时不报错，避免每次部署出现误导性失败信息
+    if docker ps -a --format '{{.Names}}' | grep -Fxq "$DB_CONTAINER"; then
+        docker rm -f "$DB_CONTAINER" >/dev/null
+    fi
+
+    if docker ps -a --format '{{.Names}}' | grep -Fxq "$APP_CONTAINER"; then
+        docker rm -f "$APP_CONTAINER" >/dev/null
+    fi
+
+    if docker network ls --format '{{.Name}}' | grep -Fxq "$NETWORK_NAME"; then
+        docker network rm "$NETWORK_NAME" >/dev/null
+    fi
 }
 
 # 检查.env文件是否存在
