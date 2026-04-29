@@ -17,3 +17,4 @@ deploy
 .vercel
 server/static/
 yarn.lock
+deploy.sh
