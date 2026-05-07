@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch, onBeforeUnmount } from "vue";
 import type { QuoteInfo } from '../../model/chat-v2';
 import type { ThemeProps } from '../../model/type';
 import { themePropsDefaults } from '../../model/type';
@@ -30,6 +30,8 @@ interface Props extends ThemeProps {
   content: string | undefined;
   /** 角色类型 */
   role?: 'user' | 'assistant' | 'system';
+  /** 是否流式输出中（用于打字机效果） */
+  isStreamLoad?: boolean;
   /** 语言设置（如 'zh-CN'、'en-US'），用于 widget 国际化 */
   locale?: string;
   /** 当前语言标识，优先级高于 locale */
@@ -53,6 +55,7 @@ interface Props extends ThemeProps {
 
 const props = withDefaults(defineProps<Props>(), {
   role: 'assistant',
+  isStreamLoad: false,
   locale: 'zh-CN',
   language: '',
   widgetId: '',
@@ -88,6 +91,60 @@ const emit = defineEmits<{
 
 // DOM 引用
 const mdContentRef = ref<HTMLDivElement | null>(null);
+const displayedContent = ref('');
+let rafId: number | null = null;
+
+const stopTypewriter = () => {
+  if (rafId !== null) {
+    cancelAnimationFrame(rafId);
+    rafId = null;
+  }
+};
+
+const typeLoop = () => {
+  const fullText = props.content || '';
+  const currentText = displayedContent.value;
+  if (currentText.length < fullText.length) {
+    displayedContent.value = fullText.slice(0, currentText.length + 1);
+    rafId = requestAnimationFrame(typeLoop);
+  } else {
+    rafId = null;
+  }
+};
+
+watch(
+  [() => props.content, () => props.isStreamLoad, () => props.role],
+  ([newContent, isStream, role]) => {
+    const text = newContent || '';
+    const shouldTypewriter =
+      Boolean(isStream) && role === 'assistant' && text.length >= 5;
+
+    if (!shouldTypewriter) {
+      stopTypewriter();
+      displayedContent.value = text;
+      return;
+    }
+
+    if (!text.startsWith(displayedContent.value)) {
+      displayedContent.value = '';
+    }
+
+    if (displayedContent.value.length > text.length) {
+      displayedContent.value = text;
+    }
+
+    if (displayedContent.value === text || rafId !== null) {
+      return;
+    }
+
+    typeLoop();
+  },
+  { immediate: true },
+);
+
+onBeforeUnmount(() => {
+  stopTypewriter();
+});
 
 /** 在内容中插入引用角标 */
 function insertReference(content: string, quotes?: QuoteInfo[]): string {
@@ -134,9 +191,11 @@ mdIt.renderer.rules.link_open = (tokens, idx, options, env, self) => {
 }
 
 /** 渲染后的 HTML 内容（已通过 DOMPurify 消毒防止 XSS） */
+const renderSourceContent = computed(() => displayedContent.value || '');
+
 const renderedMarkdown = computed(() => {
-  if (!props.content) return '';
-  const html = mdIt.render(insertReference(props.content, props.quoteInfos));
+  if (!renderSourceContent.value) return '';
+  const html = mdIt.render(insertReference(renderSourceContent.value, props.quoteInfos));
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: [
       'p', 'br', 'strong', 'em', 'b', 'i', 'u', 's', 'del',
@@ -168,7 +227,7 @@ const renderedMarkdown = computed(() => {
 // 包含：防抖 initWidgets、版本追踪、Custom Element 升级、事件绑定、disable 同步、缩放自适应
 useWidgetInit({
   containerRef: mdContentRef,
-  content: () => props.content,
+  content: () => renderSourceContent.value,
   disable: () => props.disable,
   enableScale: () => props.enableScale,
   widgetId: () => props.widgetId,
@@ -197,12 +256,23 @@ useWidgetInit({
 }
 
 .md-content-container.user {
-  border-radius: var(--td-radius-large);
-  background-color: var(--td-brand-color-light);
+  border-radius: 0;
+  background-color: transparent !important;
+  padding: 0;
 }
 
 .user .md-content {
-  padding: 0 var(--td-comp-paddingLR-s);
+  padding: 0;
+}
+
+.md-content-container.user :deep(.md-content),
+.md-content-container.user :deep(.markdown-body),
+.md-content-container.user :deep(p),
+.md-content-container.user :deep(ul),
+.md-content-container.user :deep(ol),
+.md-content-container.user :deep(pre),
+.md-content-container.user :deep(blockquote) {
+  background: transparent !important;
 }
 
 .md-content-container.system {

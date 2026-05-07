@@ -1,6 +1,7 @@
 import '@/assets/main.css'
 // 引入 adp-chat-component 组件库样式（生产构建后的完整样式，包含 TDesign 主题变量）
 import 'adp-chat-component/dist/es/adp-chat-component.css'
+import { registerSW } from 'virtual:pwa-register'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
@@ -10,6 +11,34 @@ import router from '@/router'
 import i18n from '@/i18n'
 import { setResponseInterceptor } from 'adp-chat-component'
 import { logout } from '@/service/login'
+
+const registerPwa = () => {
+  if (!('serviceWorker' in navigator)) {
+    return
+  }
+
+  const updateSW = registerSW({
+    immediate: true,
+    onNeedRefresh() {
+      const isEnglish = navigator.language.toLowerCase().startsWith('en')
+      const shouldRefresh = window.confirm(
+        isEnglish
+          ? 'A new version is available. Refresh now?'
+          : '发现新版本，是否立即刷新？'
+      )
+
+      if (shouldRefresh) {
+        void updateSW(true)
+      }
+    },
+    onOfflineReady() {
+      console.info('[PWA] App shell is ready for offline access.')
+    },
+    onRegisterError(error) {
+      console.error('[PWA] Service worker registration failed:', error)
+    },
+  })
+}
 
 // 设置响应拦截器处理登录过期
 setResponseInterceptor(
@@ -28,5 +57,7 @@ const app = createApp(App)
 app.use(createPinia())
 app.use(router)
 app.use(i18n)
+
+registerPwa()
 
 app.mount('#app')

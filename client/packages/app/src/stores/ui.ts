@@ -2,14 +2,13 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { type LanguageType } from '@/i18n'
-import { isMobile as isMobileUA } from '@/utils/ua'
 
 export const useUiStore = defineStore('ui', () => {
   const { locale } = useI18n()
   const theme = ref<'light' | 'dark' | null>('light')
   const language = ref<LanguageType>('zh')
   const drawerVisible = ref<boolean>(false)
-  const isMobile = ref<boolean>(isMobileUA())
+  const isMobile = ref<boolean>(true)
 
   const setTheme = (newTheme: 'light' | 'dark' | null) => {
     theme.value = newTheme

@@ -41,6 +41,13 @@ export { default as SideLayout } from './components/layout/SideLayout.vue'
 
 // 功能组件导出
 export { default as ShareChat } from './components/ShareChat.vue'
+export {
+    agentCardDefinitions,
+    getAgentCardByAgentType,
+    getAgentCardById,
+    getAgentCardByTitle,
+} from './config/agentCards'
+export type { AgentCardDefinition } from './config/agentCards'
 
 // 类型导出
 export type {
@@ -54,6 +61,8 @@ export type {
     ChatRelatedProps,
     LanguageOption,
     UserInfo,
+    SelectedAgentCard,
+    SenderAgentListItem,
     SideI18n,
     ChatI18n,
     ChatItemI18n,

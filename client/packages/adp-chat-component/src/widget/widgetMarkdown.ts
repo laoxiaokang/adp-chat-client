@@ -1,25 +1,12 @@
-/**
- * @module widgetMarkdown
- * @description Widget Markdown 处理模块，提供 markdown-it 的 adp-widget 插件和 HTML 编解码工具函数
- */
-
 import type MarkdownIt from 'markdown-it';
 
-/** Widget 渲染选项 */
 export interface WidgetRenderOptions {
-  /** 语言环境 */
   locale: string;
-  /** Widget ID（后备值） */
   widgetId?: string;
-  /** Widget Run ID（后备值） */
   widgetRunId?: string;
-  /** 消息 Record ID */
   recordId?: string;
 }
 
-/**
- * 将字符串转换为 HTML 实体编码，用于安全地放入 HTML 属性中
- */
 export function escapeHtmlAttr(str: string): string {
   return str
     .replace(/&/g, '&amp;')
@@ -29,9 +16,6 @@ export function escapeHtmlAttr(str: string): string {
     .replace(/>/g, '&gt;');
 }
 
-/**
- * 将 HTML 属性编码还原为原始字符串
- */
 export function unescapeHtmlAttr(str: string): string {
   return str
     .replace(/&quot;/g, '"')
@@ -41,9 +25,6 @@ export function unescapeHtmlAttr(str: string): string {
     .replace(/&amp;/g, '&');
 }
 
-/**
- * 格式化 JSON 字符串，带语法高亮（用于 fallback 展示）
- */
 export function formatJsonWithHighlight(jsonStr: string): string {
   try {
     const obj = JSON.parse(jsonStr);
@@ -62,23 +43,16 @@ export function formatJsonWithHighlight(jsonStr: string): string {
   }
 }
 
-/**
- * 简单字符串哈希函数，用于生成稳定的 elementId
- */
 function simpleHash(str: string): string {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
-    hash |= 0; // Convert to 32bit integer
+    hash |= 0;
   }
   return Math.abs(hash).toString(36);
 }
 
-/**
- * 自定义 markdown-it 插件：处理 adp-widget 代码块
- * 将 ```adp-widget 代码块渲染为 <adp-widget> 组件
- */
 export function createMarkdownItWidgetPlugin(options: WidgetRenderOptions) {
   return function markdownItWidgetPlugin(md: MarkdownIt): void {
     const defaultFence = md.renderer.rules.fence!;
@@ -90,28 +64,29 @@ export function createMarkdownItWidgetPlugin(options: WidgetRenderOptions) {
       }
       const info = token.info.trim();
 
-      // 检测 adp-widget 代码块
       if (info === 'adp-widget' || info.startsWith('adp-widget ')) {
         const widgetJson = token.content.trim();
 
-        // 尝试从 widget JSON 中解析 _adp_widget_meta 获取真正的 widgetId 和 widgetRunId
         let parsedWidgetId = '';
         let parsedWidgetRunId = '';
         try {
-          const widgetObj = JSON.parse(widgetJson);
-          if (widgetObj._adp_widget_meta) {
-            parsedWidgetId = widgetObj._adp_widget_meta.widgetId || '';
-            parsedWidgetRunId = widgetObj._adp_widget_meta.widgetRunId || '';
+          const parsedWidgetObj = JSON.parse(widgetJson) as {
+            _adp_widget_meta?: {
+              widgetId?: string;
+              widgetRunId?: string;
+            };
+          };
+          if (parsedWidgetObj._adp_widget_meta) {
+            parsedWidgetId = parsedWidgetObj._adp_widget_meta.widgetId || '';
+            parsedWidgetRunId = parsedWidgetObj._adp_widget_meta.widgetRunId || '';
           }
         } catch {
-          // 解析失败，使用空值
+          // Incomplete streamed fences should stay as code blocks until JSON is complete.
+          return defaultFence(tokens, idx, opts, env, self);
         }
 
         const actualWidgetId = parsedWidgetId || options.widgetId || '';
         const actualWidgetRunId = parsedWidgetRunId || options.widgetRunId || '';
-
-        // 生成稳定的 DOM ID（基于内容哈希 + 索引，不使用 Date.now()）
-        // 这样 computed 重新计算时生成相同的 HTML，减少不必要的 DOM 重建
         const elementId = `widget-${simpleHash(widgetJson)}-${idx}`;
 
         return `<div class="adp-widget-wrapper" data-widget-id="${actualWidgetId}" data-widget-run-id="${actualWidgetRunId}" data-record-id="${options.recordId || ''}" data-element-id="${elementId}">
@@ -123,16 +98,11 @@ export function createMarkdownItWidgetPlugin(options: WidgetRenderOptions) {
       </div>`;
       }
 
-      // 其他代码块使用默认渲染
       return defaultFence(tokens, idx, opts, env, self);
     };
   };
 }
 
-/**
- * 在 widget 加载失败时显示 JSON 回退视图
- * @param {NodeListOf<Element>} wrappers - widget wrapper DOM 节点列表
- */
 export function showFallbackJson(wrappers: NodeListOf<Element>): void {
   wrappers.forEach((wrapper) => {
     const widgetEl = wrapper.querySelector('adp-widget');

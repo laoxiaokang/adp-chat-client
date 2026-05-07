@@ -30,10 +30,22 @@ class ChatMessageApi(HTTPMethodView):
         application_id = args['ApplicationId']
         vendor_app = app.get_vendor_app(application_id)
 
+        # 新增以下代码，就能在对话时附加额外的API参数：
+        import json
+        from core.account import CoreAccount
+        account = await CoreAccount.get(request.ctx.db, request.ctx.account_id)
+        account_third_party = await CoreAccount.get_third_party(request.ctx.db, request.ctx.account_id)
+        # 注意这里的json.dumps，腾讯云ADP约定：如果值是字典，需要进行一次json编码，转换为json字符串
+        # args['CustomVariables']['account'] = json.dumps({
+        #     "userId": account_third_party.OpenId if account_third_party else str(account.Id),
+        #     "name": account.Name if account else "",
+        # })
+        args['CustomVariables']['userId']= account_third_party.OpenId if account_third_party else str(account.Id)
+        logging.info(f"userId: {args['CustomVariables']['userId']}")
         logging.info(f"[ChatMessageApi] ApplicationId: {application_id},\n\
             CustomVariables: {args['CustomVariables']},\n\
             vendor_app: {vendor_app}")
-
+        logging.info(f"ChatMessageApi: {args}")
         async def streaming_fn(response):
             async for data in CoreChat.message(
                 vendor_app,

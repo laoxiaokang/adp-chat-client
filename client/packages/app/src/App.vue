@@ -32,8 +32,12 @@ onMounted(() => {
 </style>
 <style>
 #app{
-  width: 100%;
-  height: 100vh;
+  --app-mobile-max-width: 430px;
+  width: min(100vw, var(--app-mobile-max-width));
+  max-width: var(--app-mobile-max-width);
+  height: 100dvh;
+  margin: 0 auto;
+  overflow: hidden;
 }
 @keyframes rotate {
   from {

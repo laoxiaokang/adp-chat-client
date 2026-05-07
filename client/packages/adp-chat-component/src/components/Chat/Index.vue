@@ -2,19 +2,35 @@
 <template>
     <!-- 聊天内容容器 -->
     <div id="chat-content" class="chat-box">
+        <div
+            v-if="!isLanding"
+            class="chat-page-actions"
+            :class="{ 'chat-page-actions--mobile': isMobile }"
+        >
+            <ConversationTopActions
+                @createConversation="handleCreateConversation"
+                @toggleSidebar="handleToggleSidebar"
+            />
+        </div>
         <!-- 聊天组件 -->
         <TChat ref="chatRef" :class="{ isChatting: isChatting }" :reverse="false" style="height: 100%" :clear-history="false"
             @scroll="handleChatScroll" @clear="clearConfirm">
             <!-- 默认问题提示 -->
-            <template v-if="chatList.length <= 0 && !messageLoading && !chatId">
+            <template v-if="isLanding">
                 <AppType
                     :currentApplicationAvatar="currentApplicationAvatar"
                     :currentApplicationName="currentApplicationName"
                     :currentApplicationGreeting="currentApplicationGreeting"
                     :currentApplicationOpeningQuestions="currentApplicationOpeningQuestions"
+                    :applications="applications"
+                    :selectedAgentCard="selectedAgentCard"
                     :isMobile="isMobile"
                     :isOverlay="isOverlay"
                     @selectQuestion="getDefaultQuestion"
+                    @selectApplication="handleSelectApplication"
+                    @selectAgentCard="handleSelectAgentCard"
+                    @createConversation="handleCreateConversation"
+                    @toggleSidebar="handleToggleSidebar"
                 />
             </template>
             <!-- 聊天消息列表 -->
@@ -44,7 +60,7 @@
                     </InfiniteLoading>
                     <div class="chat-item__content" v-for="(item, index) in chatList" :key="item.RecordId">
                         <Checkbox class="share-checkbox" :checked="selectedIds?.includes(item.RecordId)"
-                            v-if="isSelecting" @change="(e) => onSelectIds(item.RecordId, e)" />
+                            v-if="isSelecting" @change="(checked: boolean) => onSelectIds(item.RecordId, checked)" />
                         <div style="width: 100%">
                             <ChatItem 
                                 :isLastMsg="index === (chatList.length - 1)" 
@@ -116,12 +132,18 @@
                     :useInternalRecord="useInternalRecord"
                     :asrUrlApi="asrUrlApi"
                     :enableVoiceInput="props.enableVoiceInput"
+                    :showLandingPrompts="isLanding"
+                    :landingPrompts="landingPrompts"
+                    :agentListItems="agentListItems"
+                    :selectedAgentCard="selectedAgentCard"
                     @stop="onStop"
                     @send="handleSend"
                     @uploadFile="handleUploadFile"
                     @startRecord="handleStartRecord"
                     @stopRecord="handleStopRecord"
                     @message="handleMessage"
+                    @selectApplication="handleSelectApplication"
+                    @selectAgentCard="handleSelectAgentCard"
                 />
             </template>
         </TChat>
@@ -136,11 +158,14 @@ import { Checkbox, Loading as TLoading, Card as TCard, Checkbox as TCheckbox, Di
 import type { Record } from '../../model/chat-v2'
 import { ScoreValue } from '../../model/chat-v2'
 import type { FileProps } from '../../model/file';
+import type { Application } from '../../model/application';
 import { MessageCode } from '../../model/messages';
-import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n } from '../../model/type'
+import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n, SelectedAgentCard, SenderAgentListItem } from '../../model/type'
 import { chatRelatedPropsDefaults, defaultChatI18n, defaultChatI18nEn, defaultChatItemI18n, defaultChatItemI18nEn, defaultSenderI18n, defaultSenderI18nEn } from '../../model/type'
+import { agentCardDefinitions } from '../../config/agentCards'
 
 import AppType from './AppType.vue'
+import ConversationTopActions from './ConversationTopActions.vue'
 import Sender from './Sender.vue'
 import BackToBottom from './BackToBottom.vue'
 import ChatItem from './ChatItem.vue'
@@ -163,6 +188,10 @@ export interface Props extends ChatRelatedProps {
     currentApplicationGreeting?: string;
     /** 当前应用推荐问题列表 */
     currentApplicationOpeningQuestions?: string[];
+    /** 应用列表 */
+    applications?: Application[];
+    /** 当前选中的卡片信息 */
+    selectedAgentCard?: SelectedAgentCard | null;
     /** 国际化文本 */
     i18n?: ChatI18n;
     /** ChatItem 国际化文本 */
@@ -191,6 +220,8 @@ const props = withDefaults(defineProps<Props>(), {
     currentApplicationName: '',
     currentApplicationGreeting: '',
     currentApplicationOpeningQuestions: () => [],
+    applications: () => [],
+    selectedAgentCard: null,
     i18n: () => ({}),
     chatItemI18n: () => ({}),
     senderI18n: () => ({}),
@@ -208,6 +239,8 @@ const {
     currentApplicationName,
     currentApplicationGreeting,
     currentApplicationOpeningQuestions,
+    applications,
+    selectedAgentCard,
     currentApplicationId,
     isChatting,
     isOverlay,
@@ -233,6 +266,11 @@ const senderI18n = computed(() => {
     return { ...defaults, ...props.senderI18n };
 });
 
+const landingPrompts = [
+    '上传体检报告',
+    '解读我的报告',
+    '心悸怎么缓解',
+];
 const emit = defineEmits<{
     (e: 'send', query: string, fileList: FileProps[], conversationId: string, applicationId: string): void;
     (e: 'stop'): void;
@@ -241,10 +279,14 @@ const emit = defineEmits<{
     (e: 'share', conversationId: string, applicationId: string, recordIds: string[]): void;
     (e: 'copy', rowtext: string | undefined, content: string | undefined, type: string): void;
     (e: 'uploadFile', files: File[]): void;
+    (e: 'toggleSidebar'): void;
+    (e: 'createConversation'): void;
     (e: 'startRecord'): void;
     (e: 'stopRecord'): void;
     (e: 'message', code: MessageCode, message: string): void;
     (e: 'conversationChange', conversationId: string): void;
+    (e: 'selectApplication', applicationId: string): void;
+    (e: 'selectAgentCard', card: SelectedAgentCard): void;
     /** widget 事件（用于与 SSE/对话流交互） */
     (e: 'widgetEvent', event: CustomEvent, widgetRunId: string, widgetId: string, recordId: string): void;
 }>();
@@ -317,6 +359,18 @@ const lastScrollTop = ref(0)
  */
 const hasUserScrolled = ref(false)
 
+const isLanding = computed(() => {
+    return chatList.value.length <= 0 && !messageLoading.value && !chatId.value;
+});
+
+const agentListItems = computed(() => {
+    const fallbackAppId = applications.value[0]?.ApplicationId;
+    return agentCardDefinitions.map((card, index) => ({
+        ...card,
+        applicationId: applications.value[index]?.ApplicationId || fallbackAppId,
+    }));
+});
+
 /**
  * 滚动到底部
  */
@@ -335,6 +389,26 @@ const handleClickBackToBottom = () => {
     hasUserScrolled.value = false;
     backToBottom()
 }
+
+const handleSelectApplication = (applicationId: string) => {
+    if (!applicationId) {
+        return;
+    }
+    emit('selectApplication', applicationId);
+};
+
+const handleSelectAgentCard = (card: SelectedAgentCard) => {
+    emit('selectAgentCard', card);
+};
+
+const handleToggleSidebar = () => {
+    emit('toggleSidebar');
+};
+
+const handleCreateConversation = () => {
+    senderRef.value?.changeSenderVal('', []);
+    emit('createConversation');
+};
 
 /**
  * 聊天滚动事件
@@ -396,7 +470,7 @@ onUnmounted(() => {
  * 设置默认问题
  */
 const getDefaultQuestion = (value: string) => {
-    inputEnter(value)
+    senderRef.value?.changeSenderVal(value, []);
 }
 
 /**
@@ -582,6 +656,7 @@ const onSelectIds = (RecordId: string | undefined, checked: boolean) => {
     }
 }
 
+
 /**
  * 处理文件上传
  */
@@ -642,6 +717,7 @@ defineExpose({
     bottom: var(--td-comp-margin-m); 
     z-index:2
 }
+
 .chat-box {
     height: 100%;
     position: relative;
@@ -650,6 +726,32 @@ defineExpose({
 .chat-item__content {
     display: flex;
     align-items: self-start;
+}
+
+.chat-page-actions {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 56px;
+    padding: 8px calc(var(--td-comp-paddingLR-xl) - var(--td-size-4)) 10px;
+    contain: layout paint;
+    pointer-events: none;
+    transform: translateZ(0);
+}
+
+.chat-page-actions :deep(.conversation-actions) {
+    max-width: calc(800px + var(--td-size-4));
+    margin: 0 auto;
+    pointer-events: auto;
+}
+
+.chat-page-actions--mobile {
+    min-height: 52px;
+    padding-bottom: 10px;
 }
 
 .share-setting-container {
@@ -749,13 +851,19 @@ defineExpose({
 
 /* 确保 AppType 组件容器有足够高度实现垂直居中 */
 :deep(.t-chat__list > div) {
-    height: 100%;
+    min-height: 100%;
 }
 
 :deep(.t-chat__list .content) {
     width: 100%;
     max-width: calc(800px + var(--td-size-4));
     margin: 0 auto;
+    box-sizing: border-box;
+    padding-top: 56px;
+}
+
+:deep(.t-chat__list .content.isMobile) {
+    padding-top: 52px;
 }
 
 :deep(.share-setting-content .t-card__body) {
@@ -803,4 +911,5 @@ defineExpose({
 :deep(.share-setting-container.isMobile) {
     box-shadow: 0px 0px 1px rgba(18, 19, 25, 0.06), 0px 0px 8px rgba(18, 19, 25, 0.06), 0px 8px 32px rgba(18, 19, 25, 0.1);
 }
+
 </style>

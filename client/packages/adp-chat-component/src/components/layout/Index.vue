@@ -41,15 +41,18 @@ import type { WidgetActionRequest } from '../../widget';
 import type { 
     LanguageOption, 
     UserInfo,
+    SelectedAgentCard,
     SideI18n, 
     ChatI18n, 
     ChatItemI18n, 
     SenderI18n,
+    MobileProps,
     ThemeProps,
     OverlayProps
 } from '../../model/type';
 import { 
     defaultLanguageOptions,
+    mobilePropsDefaults,
     themePropsDefaults,
     overlayPropsDefaults,
     defaultChatI18n,
@@ -62,7 +65,7 @@ import {
     defaultSideI18nEn
 } from '../../model/type';
 
-export interface Props extends ThemeProps, OverlayProps {
+export interface Props extends ThemeProps, MobileProps, OverlayProps {
     /** 当前语言标识，用于自动选择内部默认 i18n（如 'zh-CN'、'en-US'） */
     language?: string;
     /** 是否为浮层模式 */
@@ -113,6 +116,8 @@ export interface Props extends ThemeProps, OverlayProps {
     chatItemI18n?: ChatItemI18n;
     /** Sender 国际化文本 */
     senderI18n?: SenderI18n;
+    /** 当前选中的卡片信息 */
+    selectedAgentCard?: SelectedAgentCard | null;
     /** API 配置 - 如果传入则使用 HTTP 请求获取数据 */
     apiConfig?: ApiConfig;
     /** 是否自动加载数据（仅在使用 apiConfig 时生效） */
@@ -121,6 +126,7 @@ export interface Props extends ThemeProps, OverlayProps {
 
 const props = withDefaults(defineProps<Props>(), {
     ...themePropsDefaults,
+    ...mobilePropsDefaults,
     ...overlayPropsDefaults,
     language: 'zh-CN',
     isOverlay: false,
@@ -141,6 +147,7 @@ const props = withDefaults(defineProps<Props>(), {
     maxAppLen: 4,
     showCloseButton: true,
     aiWarningText: '内容由AI生成，仅供参考',
+    selectedAgentCard: null,
     apiConfig: () => ({}),
     autoLoad: true,
 });
@@ -167,6 +174,7 @@ const emit = defineEmits<{
     (e: 'stopRecord'): void;
     (e: 'message', code: MessageCode, message: string): void;
     (e: 'conversationChange', conversationId: string): void;
+    (e: 'selectAgentCard', card: SelectedAgentCard): void;
     (e: 'dataLoaded', type: 'applications' | 'conversations' | 'chatList' | 'user' | 'systemConfig', data: any): void;
     /** Widget 事件（用于与 SSE/对话流交互） */
     (e: 'widgetEvent', event: CustomEvent, widgetRunId: string, widgetId: string, recordId: string): void;
@@ -189,6 +197,10 @@ const mergedChatItemI18n = computed(() => ({
 
 // 计算是否为移动端模式（内部计算，不再依赖外部传入）
 const isMobile = computed(() => {
+    if (props.isMobile) {
+        return true;
+    }
+
     return computeIsMobile({
         isOverlay: props.isOverlay,
         width: props.width,
@@ -330,6 +342,12 @@ const mergedChatI18n = computed(() => {
 const mergedSenderI18n = computed(() => {
     const defaults = props.language?.startsWith('en') ? defaultSenderI18nEn : defaultSenderI18n;
     return { ...defaults, ...props.senderI18n };
+});
+
+const selectedAgentCardVariables = computed(() => {
+    return {
+        AgentType: props.selectedAgentCard?.agentType || props.selectedAgentCard?.id || '',
+    };
 });
 
 // 使用 composable 统一管理 API 配置
@@ -588,6 +606,7 @@ const handleInternalSend = async (query: string, fileList: FileProps[], conversa
                     ConversationId: conversationId || undefined,
                     ApplicationId: applicationId,
                     FileInfos: fileList,
+                    CustomVariables: selectedAgentCardVariables.value,
                 },
                 { signal: streamState.abortController?.signal },
                 mergedApiDetailConfig.value.sendMessageApi
@@ -829,6 +848,18 @@ const handleSelectApplication = (app: Application) => {
     emit('selectApplication', app);
 };
 
+const handleSelectApplicationFromCard = (applicationId: string) => {
+    const target = actualApplications.value.find(app => app.ApplicationId === applicationId);
+    if (!target) {
+        return;
+    }
+    handleSelectApplication(target);
+};
+
+const handleSelectAgentCardFromCard = (card: SelectedAgentCard) => {
+    emit('selectAgentCard', card);
+};
+
 const handleSelectConversation = async (conversation: ChatConversation) => {
     const isSameConversation =
         conversation.Id === internalCurrentConversation.value?.Id &&
@@ -935,6 +966,7 @@ const sendWidgetActionSSE = async (conversationId: string, applicationId: string
                 Contents: contents,
                 ConversationId: conversationId || undefined,
                 ApplicationId: applicationId,
+                CustomVariables: selectedAgentCardVariables.value,
             },
             { signal: streamState.abortController?.signal },
             mergedApiDetailConfig.value.sendMessageApi
@@ -1279,6 +1311,8 @@ defineExpose({
             </SideLayout>
             <MainLayout
                 ref="mainLayoutRef"
+                :applications="actualApplications"
+                :selectedAgentCard="props.selectedAgentCard"
                 :currentApplicationAvatar="currentApplicationAvatar"
                 :currentApplicationName="currentApplicationName"
                 :currentApplicationGreeting="currentApplicationGreeting"
@@ -1315,6 +1349,8 @@ defineExpose({
                 @stopRecord="emit('stopRecord')"
                 @message="(code: MessageCode, message: string) => emit('message', code, message)"
                 @conversationChange="(conversationId: string) => emit('conversationChange', conversationId)"
+                @selectApplication="handleSelectApplicationFromCard"
+                @selectAgentCard="handleSelectAgentCardFromCard"
                 @widgetEvent="handleInternalWidgetEvent"
             >
                 <template #header-overlay-content v-if="showOverlayButton || $slots['header-overlay-content']">

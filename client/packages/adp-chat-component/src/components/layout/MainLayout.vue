@@ -12,10 +12,14 @@ import CreateConversation from '../CreateConversation.vue';
 import { Divider as TDivider, Space as TSpace, Avatar as TAvatar, Layout as TLayout, Content as TContent, Header as THeader, Footer as TFooter } from 'tdesign-vue-next';
 
 // TAvatar, TLayout, TContent, THeader, TFooter 已导入，模板中使用对应组件
-import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n } from '../../model/type';
+import type { ChatRelatedProps, ChatI18n, ChatItemI18n, SenderI18n, SelectedAgentCard } from '../../model/type';
 import { chatRelatedPropsDefaults, defaultChatI18n } from '../../model/type';
 
 export interface Props extends ChatRelatedProps {
+    /** 应用列表 */
+    applications?: Application[];
+    /** 当前选中的卡片信息 */
+    selectedAgentCard?: SelectedAgentCard | null;
     /** 当前应用信息 */
     currentApplication?: Application;
     /** 当前应用头像 */
@@ -60,6 +64,8 @@ export interface Props extends ChatRelatedProps {
 
 const props = withDefaults(defineProps<Props>(), {
     ...chatRelatedPropsDefaults,
+    applications: () => [],
+    selectedAgentCard: null,
     size: 'small',
     currentApplicationAvatar: '',
     currentApplicationName: '',
@@ -141,6 +147,10 @@ const emit = defineEmits<{
      * @param conversationId - 会话ID
      */
     (e: 'conversationChange', conversationId: string): void;
+    /** 选择应用（空态卡片） */
+    (e: 'selectApplication', applicationId: string): void;
+    /** 选择卡片信息（用于页面透传） */
+    (e: 'selectAgentCard', card: SelectedAgentCard): void;
     /** Widget 事件（用于与 SSE/对话流交互）
      * @param event - widget 事件
      * @param widgetRunId - widget run id
@@ -210,6 +220,8 @@ defineExpose({
                 :currentApplicationName="currentApplicationName"
                 :currentApplicationGreeting="currentApplicationGreeting"
                 :currentApplicationOpeningQuestions="currentApplicationOpeningQuestions"
+                :applications="applications"
+                :selectedAgentCard="selectedAgentCard"
                 :isMobile="isMobile"
                 :theme="theme"
                 :language="props.language"
@@ -221,6 +233,8 @@ defineExpose({
                 :enableVoiceInput="enableVoiceInput"
                 :isUploading="isUploading"
                 :isOverlay="isOverlay"
+                @toggleSidebar="emit('toggleSidebar')"
+                @createConversation="emit('createConversation')"
                 @send="(query, fileList, conversationId, applicationId) => emit('send', query, fileList, conversationId, applicationId)"
                 @stop="emit('stop')"
                 @loadMore="(conversationId, lastRecordId) => emit('loadMore', conversationId, lastRecordId)"
@@ -233,6 +247,8 @@ defineExpose({
                 @stopRecord="emit('stopRecord')"
                 @message="(code, message) => emit('message', code, message)"
                 @conversationChange="(conversationId) => emit('conversationChange', conversationId)"
+                @selectApplication="(applicationId) => emit('selectApplication', applicationId)"
+                @selectAgentCard="(card) => emit('selectAgentCard', card)"
                 @widgetEvent="(event, widgetRunId, widgetId, recordId) => emit('widgetEvent', event, widgetRunId, widgetId, recordId)"
             >
                 <template #empty-content>
@@ -255,18 +271,20 @@ defineExpose({
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: var(--td-bg-color-container);
+    background: #d8efff url('../../assets/img/medical-home-bg.png') no-repeat top center;
+    background-size: cover;
     overflow: hidden;
 }
 .isMobile .layout-header{
     padding: var(--td-pop-padding-xl) var(--td-comp-margin-xl);
 }
 .layout-header {
+    display: none;
     flex-shrink: 0;
-    display: flex;
     padding: var(--td-pop-padding-xl) var(--td-comp-paddingLR-xl);
     justify-content: space-between;
     height: var(--td-comp-size-xxxxl);
+    background: transparent;
 }
 .header-app-settings{
     display: flex;
@@ -291,11 +309,14 @@ defineExpose({
 .layout-content {
     flex: 1;
     overflow: auto;
+    background: transparent;
+    padding: 14px var(--td-comp-paddingLR-m) 0;
 }
 
 .layout-footer {
     flex-shrink: 0;
-    padding: var(--td-pop-padding-l);
+    padding: 0 var(--td-comp-paddingLR-m) var(--td-comp-paddingTB-m);
+    background: transparent;
 }
 .header-app-driver{
     margin: 0 var(--td-size-6) 0 var(--td-size-4);
@@ -306,6 +327,9 @@ defineExpose({
 }
 :deep(.t-chat__footer){
     position: relative;
+}
+:deep(.t-chat) {
+    background: transparent;
 }
 :deep(.content .t-chat__content, .content .t-chat__detail-reasoning){
     padding-top: 0;
@@ -359,5 +383,13 @@ defineExpose({
     background-color: transparent;
     padding-left: var(--td-comp-paddingTB-s);
     text-align: left;
+}
+
+.isMobile .layout-content {
+    padding: 12px var(--td-comp-paddingLR-xs) 0;
+}
+
+.isMobile .layout-footer {
+    padding: 0 var(--td-comp-paddingLR-xs) var(--td-comp-paddingTB-s);
 }
 </style>

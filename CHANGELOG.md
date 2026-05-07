@@ -1,3 +1,4 @@
+
 ## v0.4.0 (2026-04-16)
 
 ### Feat
@@ -36,6 +37,7 @@
 ### Perf
 
 - **server**: make the conversational response experience smoother
+
 
 ## v0.3.1 (2026-02-26)
 

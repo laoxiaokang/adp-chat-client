@@ -1,18 +1,29 @@
 <!-- 消息发送组件，支持文本、图片上传、语音输入 -->
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
-import { ChatSender as TChatSender } from '@tdesign-vue-next/chat'
-import { MessagePlugin, Upload as TUpload, Tooltip as TTooltip } from 'tdesign-vue-next'
-import type { UploadFile, RequestMethodResponse } from 'tdesign-vue-next'
+import { ref, computed, onMounted, nextTick, watch } from 'vue';
+import { ChatSender as TChatSender } from '@tdesign-vue-next/chat';
+import { MessagePlugin, Upload as TUpload, Tooltip as TTooltip } from 'tdesign-vue-next';
 import type { FileProps } from '../../model/file';
 import { MessageCode, getMessage } from '../../model/messages';
-import type { ChatRelatedProps, SenderI18n } from '../../model/type';
+import type { ChatRelatedProps, SenderI18n, SelectedAgentCard, SenderAgentListItem } from '../../model/type';
 import { chatRelatedPropsDefaults, defaultSenderI18n, defaultSenderI18nEn } from '../../model/type';
-import RecordIcon from '../Common/RecordIcon.vue';
 import FileList from '../Common/FileList.vue';
 import CustomizedIcon from '../CustomizedIcon.vue';
 import WebRecorder from '../../utils/webRecorder';
 import { getAsrUrl } from '../../service/api';
+import voiceIcon from '../../assets/img/voice-icon.png';
+import plusCircleIcon from '../../assets/img/plus-circle-icon.png';
+import menuIcon from '../../assets/img/menu.png';
+
+interface UploadLikeFile {
+    raw?: File;
+    type?: string;
+}
+
+interface UploadRequestResult {
+    status: 'success' | 'fail';
+    response: Record<string, unknown>;
+}
 
 export interface Props extends ChatRelatedProps {
     /** 是否正在流式加载 */
@@ -23,6 +34,14 @@ export interface Props extends ChatRelatedProps {
     asrUrlApi?: string;
     /** 是否启用语音输入 */
     enableVoiceInput?: boolean;
+    /** 是否显示欢迎态快捷问题 */
+    showLandingPrompts?: boolean;
+    /** 欢迎态快捷问题 */
+    landingPrompts?: string[];
+    /** 对话页 agent 切换项 */
+    agentListItems?: SenderAgentListItem[];
+    /** 当前选中的 agent 卡片 */
+    selectedAgentCard?: SelectedAgentCard | null;
     /** 国际化文本 */
     i18n?: SenderI18n;
 }
@@ -33,10 +52,13 @@ const props = withDefaults(defineProps<Props>(), {
     useInternalRecord: false,
     asrUrlApi: '',
     enableVoiceInput: true,
+    showLandingPrompts: false,
+    landingPrompts: () => [],
+    agentListItems: () => [],
+    selectedAgentCard: null,
     i18n: () => ({})
 });
 
-// 合并默认值和传入值（根据 language 选择对应语言的默认值）
 const i18n = computed(() => {
     const defaults = props.language?.startsWith('en') ? defaultSenderI18nEn : defaultSenderI18n;
     return { ...defaults, ...props.i18n };
@@ -49,54 +71,33 @@ const emit = defineEmits<{
     (e: 'startRecord'): void;
     (e: 'stopRecord'): void;
     (e: 'message', code: MessageCode, message: string): void;
+    (e: 'selectApplication', applicationId: string): void;
+    (e: 'selectAgentCard', card: SelectedAgentCard): void;
 }>();
 
-/**
- * 输入框内容
- */
-const inputValue = ref('')
-
-/**
- * 开始语音时输入框内容
- */
-const inputValueBefore = ref('')
-
-/**
- * 是否正在录音
- */
-const recording = ref(false)
-
-/**
- * 文件列表
- */
-const fileList = ref([] as FileProps[])
-
-
-
-/**
- * WebRecorder 实例引用
- */
-const recorder = ref<WebRecorder | null>(null)
-
-/**
- * ASR WebSocket 连接引用
- */
-const asrWebSocket = ref<WebSocket | null>(null)
-
-/**
- * 录音超时时间，单位 s
- */
+const inputValue = ref('');
+const inputValueBefore = ref('');
+const recording = ref(false);
+const isAgentListExpanded = ref(false);
+const agentListRef = ref<HTMLElement | null>(null);
+const fileList = ref([] as FileProps[]);
+const recorder = ref<WebRecorder | null>(null);
+const asrWebSocket = ref<WebSocket | null>(null);
 const recordMaxTime = 60;
 const recordRef = ref<ReturnType<typeof setTimeout> | null>(null);
-
-/**
- * ChatSender 组件 ref
- */
 const chatSenderRef = ref<InstanceType<typeof TChatSender> | null>(null);
+const hasSendContent = computed(() => inputValue.value.trim().length > 0 || fileList.value.length > 0);
+const localSelectedAgentId = ref('');
+const activeAgentId = computed(() => localSelectedAgentId.value || props.selectedAgentCard?.id || props.agentListItems[0]?.id || '');
+const visibleAgentListItems = computed(() => {
+    if (isAgentListExpanded.value) {
+        return props.agentListItems;
+    }
 
-/**
- * 设置 textarea 的 enterkeyhint 属性
- */
+    const activeItem = props.agentListItems.find((item) => item.id === activeAgentId.value);
+    return activeItem ? [activeItem] : props.agentListItems.slice(0, 1);
+});
+
 onMounted(() => {
     nextTick(() => {
         const textarea = chatSenderRef.value?.$el?.querySelector('textarea');
@@ -106,24 +107,53 @@ onMounted(() => {
     });
 });
 
-/**
- * 处理输入内容变化
- */
-const handleInput = (value: string) => {
-    inputValue.value = value
-}
+const scrollActiveAgentIntoView = (behavior: ScrollBehavior = 'smooth') => {
+    nextTick(() => {
+        const activeItem = agentListRef.value?.querySelector('.agent-item--active') as HTMLElement | null;
+        activeItem?.scrollIntoView({
+            behavior,
+            block: 'nearest',
+            inline: 'nearest',
+        });
+    });
+};
 
-/**
- * 处理文件选择事件
- */
-const handleFileSelect = async function (files: UploadFile | UploadFile[]): Promise<RequestMethodResponse> {
+watch(
+    [activeAgentId, isAgentListExpanded, () => props.agentListItems.length],
+    () => {
+        scrollActiveAgentIntoView(isAgentListExpanded.value ? 'smooth' : 'auto');
+    },
+    { immediate: true },
+);
+
+watch(
+    () => props.selectedAgentCard?.id,
+    (nextId) => {
+        if (nextId) {
+            localSelectedAgentId.value = nextId;
+            return;
+        }
+
+        const firstAgent = props.agentListItems[0];
+        if (!localSelectedAgentId.value && firstAgent) {
+            localSelectedAgentId.value = firstAgent.id;
+        }
+    },
+    { immediate: true },
+);
+
+const handleInput = (value: string) => {
+    inputValue.value = value;
+};
+
+const handleFileSelect = async function (files: UploadLikeFile | File | Array<UploadLikeFile | File>): Promise<UploadRequestResult> {
     const fileArray = Array.isArray(files) ? files : [files];
     if (fileArray.length <= 0) return { status: 'success', response: {} };
-    const allowed = ['image/png', 'image/jpg', 'image/jpeg', 'image/bmp']
+    const allowed = ['image/png', 'image/jpg', 'image/jpeg', 'image/bmp'];
     const validFiles: File[] = [];
-    
-    fileArray.forEach((item: UploadFile) => {
-        const file = item.raw || item;
+
+    fileArray.forEach((item) => {
+        const file = item instanceof File ? item : (item.raw ?? item);
         if (file instanceof File && !allowed.includes(file.type)) {
             const text = i18n.value.notSupport || getMessage(MessageCode.FILE_FORMAT_NOT_SUPPORT).message;
             MessagePlugin.error(text);
@@ -134,63 +164,55 @@ const handleFileSelect = async function (files: UploadFile | UploadFile[]): Prom
             validFiles.push(file);
         }
     });
-    
+
     if (validFiles.length > 0) {
         emit('uploadFile', validFiles);
     }
     return { status: 'success', response: {} };
-}
+};
 
-/**
- * 删除文件
- */
 const handleDeleteFile = (index: number) => {
     fileList.value.splice(index, 1);
     fileList.value = [...fileList.value];
-}
+};
 
-/**
- * 处理发送消息
- */
 const handleSend = async function (value: string) {
     if (props.isStreamLoad) {
         const text = i18n.value.answering || getMessage(MessageCode.ANSWERING).message;
         MessagePlugin.warning(text);
         emit('message', MessageCode.ANSWERING, text);
-        return
+        return;
     }
-    // 用户点击发送动作时结束录音
+
+    const textValue = value.trim();
+    if (!textValue && fileList.value.length === 0) {
+        return;
+    }
+
     handleStopRecord();
-    
-    // 将图片处理成 markdown 格式拼接到消息内容前面
-    let _query = '';
+
+    let query = '';
     for (const file of fileList.value) {
         if (file.status === 'done' && file.url) {
-            _query += `![](${file.url})`;
+            query += `![](${file.url})`;
         }
     }
-    _query += value;
-    
-    emit('send', _query, fileList.value);
-    // 发送后清空输入框和文件列表
+    query += textValue;
+
+    emit('send', query, fileList.value);
     inputValue.value = '';
     fileList.value = [];
-}
+};
 
-/**
- * 处理开始录音事件
- */
 const handleStartRecord = async () => {
     recording.value = true;
-    
-    // 如果使用内部录音处理（API 模式）
+
     if (props.useInternalRecord) {
         try {
             const res = await getAsrUrl(props.asrUrlApi || undefined);
             inputValueBefore.value = inputValue.value;
-            const url = res.url;
-            asrWebSocket.value = new WebSocket(url);
-            
+            asrWebSocket.value = new WebSocket(res.url);
+
             asrWebSocket.value.onopen = () => {
                 startRecording();
                 recordRef.value = setTimeout(() => {
@@ -202,19 +224,19 @@ const handleStartRecord = async () => {
                     }
                 }, recordMaxTime * 1000);
             };
-            
+
             asrWebSocket.value.onmessage = (event) => {
                 if (!recording.value) return;
                 const msg = JSON.parse(event.data);
                 if ('result' in msg) {
-                    inputValue.value = inputValueBefore.value + msg['result']['voice_text_str'];
+                    inputValue.value = inputValueBefore.value + msg.result.voice_text_str;
                 }
-                if ('message' in msg && 'code' in msg && msg['code'] != 0) {
-                    MessagePlugin.error(msg['message']);
-                    emit('message', MessageCode.ASR_SERVICE_FAILED, msg['message']);
+                if ('message' in msg && 'code' in msg && msg.code !== 0) {
+                    MessagePlugin.error(msg.message);
+                    emit('message', MessageCode.ASR_SERVICE_FAILED, msg.message);
                 }
             };
-            
+
             asrWebSocket.value.onclose = () => {
                 recording.value = false;
                 if (recordRef.value) {
@@ -229,19 +251,16 @@ const handleStartRecord = async () => {
             emit('message', MessageCode.ASR_SERVICE_FAILED, text);
         }
     }
-    
-    emit('startRecord');
-}
 
-/**
- * 开始录音（内部方法）
- */
+    emit('startRecord');
+};
+
 const startRecording = () => {
     const requestId = '0';
     recorder.value = new WebRecorder({ requestId });
     recorder.value.OnReceivedData = (data) => {
         if (asrWebSocket.value?.readyState === WebSocket.OPEN) {
-            asrWebSocket.value?.send(data);
+            asrWebSocket.value.send(data);
         }
     };
     recorder.value.OnError = (err) => {
@@ -270,18 +289,13 @@ const startRecording = () => {
         recording.value = false;
     };
     recorder.value.start();
-}
+};
 
-/**
- * 处理停止录音事件
- */
 const handleStopRecord = () => {
     if (!recording.value) return;
     recording.value = false;
-    
-    // 如果使用内部录音处理
+
     if (props.useInternalRecord) {
-        console.log('[asr] stop');
         recorder.value?.stop();
         recorder.value = null;
         asrWebSocket.value?.close();
@@ -291,9 +305,9 @@ const handleStopRecord = () => {
             recordRef.value = null;
         }
     }
-    
+
     emit('stopRecord');
-}
+};
 
 const handlePaste = async (event: ClipboardEvent) => {
     try {
@@ -302,11 +316,11 @@ const handlePaste = async (event: ClipboardEvent) => {
             return;
         }
 
-        // 查找所有图片项
-        const imageItems = Array.from(items).filter((item: DataTransferItem) =>
-            item.type.includes('image')
-        ).map((i: DataTransferItem) => i.getAsFile()).filter((file): file is File => file !== null);
-        
+        const imageItems = Array.from(items)
+            .filter((item: DataTransferItem) => item.type.includes('image'))
+            .map((item: DataTransferItem) => item.getAsFile())
+            .filter((file): file is File => file !== null);
+
         if (imageItems.length > 0) {
             handleFileSelect(imageItems);
         }
@@ -315,148 +329,537 @@ const handlePaste = async (event: ClipboardEvent) => {
     }
 };
 
-/**
- * 修改输入框内容（供外部调用）
- */
+const handleSelectLandingPrompt = (prompt: string) => {
+    inputValue.value = inputValue.value === prompt ? '' : prompt;
+};
+
+const handleToggleAgentList = () => {
+    isAgentListExpanded.value = !isAgentListExpanded.value;
+};
+
+const isActiveAgent = (item: SenderAgentListItem) => {
+    return item.id === activeAgentId.value;
+};
+
+const handleSelectAgentFromList = (item: SenderAgentListItem) => {
+    if (!item.applicationId) {
+        return;
+    }
+
+    localSelectedAgentId.value = item.id;
+    emit('selectApplication', item.applicationId);
+    emit('selectAgentCard', {
+        id: item.id,
+        agentType: item.agentType,
+        title: item.title,
+        desc: item.desc,
+    });
+    isAgentListExpanded.value = false;
+};
+
 const changeSenderVal = (value: string, files: FileProps[]) => {
     inputValue.value = value;
     fileList.value = files;
-}
+};
 
-/**
- * 添加文件到列表（供外部调用）
- */
 const addFile = (file: FileProps) => {
     fileList.value.push(file);
-}
+};
 
-/**
- * 设置录音状态（供外部调用）
- */
 const setRecording = (value: boolean) => {
     recording.value = value;
-}
+};
 
-/**
- * 更新输入值（供外部调用，用于语音识别）
- */
 const updateInputValue = (value: string) => {
     inputValue.value = value;
-}
+};
 
-/**
- * 暴露给父组件的方法
- */
 defineExpose({
     changeSenderVal,
     addFile,
     setRecording,
     updateInputValue
-})
+});
 </script>
 
 <template>
-    <TChatSender ref="chatSenderRef" class="sender-container" :value="inputValue" :textarea-props="{
-        placeholder: isMobile ? i18n.placeholderMobile : i18n.placeholder,
-        autosize: { minRows: 1, maxRows: 6 },
-    }"
-        @stop="emit('stop')"
-        @send="handleSend"
-        @change="handleInput"
-        @paste="handlePaste">
-        <template #inner-header>
-            <FileList :fileList="fileList" :theme="theme" @delete="handleDeleteFile"/>
-        </template>
-        <template #suffix>
-            <!-- 等待中的发送按钮 -->
-            <CustomizedIcon class="send-icon waiting" v-if="!isStreamLoad && !inputValue" nativeIcon :showHoverBg="false" :name="theme === 'dark' ? 'send_dark' : 'send'" @click="handleSend(inputValue)" />
-            <!-- 可用的发送按钮 -->
-            <CustomizedIcon class="send-icon success" v-if="!isStreamLoad && inputValue" nativeIcon :showHoverBg="false" name="send_fill" @click="handleSend(inputValue)" />
-            <!-- 停止发送按钮 -->
-            <CustomizedIcon class="send-icon stop" v-if="isStreamLoad" nativeIcon :showHoverBg="false" :name="theme === 'dark' ? 'pause_dark' : 'pause'" @click="emit('stop')" />
-        </template>
-        <template #prefix>
-            <div class="sender-control-container">
-                <TUpload class="sender-upload"  ref="uploadRef1" :max="10" :multiple="true" :request-method="handleFileSelect"
-                    accept="image/*" theme="custom">
-                    <TTooltip :content="i18n.uploadImg">
-                        <span class="recording-icon" :class="{ isMobile: isMobile }">
-                            <CustomizedIcon name="picture" :theme="theme" :showHoverBg="!isMobile"/>
-                        </span>
-                    </TTooltip>
-                </TUpload>
-                <TTooltip v-if="enableVoiceInput && !recording" :content="i18n.startRecord">
-                    <span class="recording-icon" :class="{ isMobile: isMobile }" @click="handleStartRecord">
-                        <CustomizedIcon name="voice_input" :theme="theme" :showHoverBg="!isMobile"/>
-                    </span>
-                </TTooltip>
+    <div class="sender-wrapper" :class="{ 'is-landing': showLandingPrompts }">
+        <div
+            v-if="agentListItems.length > 0"
+            class="agent-box"
+            :class="{ 'is-mobile': isMobile }"
+        >
+            <img
+                :src="menuIcon"
+                alt="menu"
+                class="agent-menu-icon"
+                :class="{ active: isAgentListExpanded }"
+                @click="handleToggleAgentList"
+            />
 
-                <TTooltip v-if="enableVoiceInput && recording" :content="i18n.stopRecord">
-                    <span class="recording-icon stop-icon" :class="{ isMobile: isMobile }" @click="handleStopRecord">
-                        <RecordIcon />
-                    </span>
-                </TTooltip>
+            <div
+                ref="agentListRef"
+                class="agent-list"
+                :class="{ expanded: isAgentListExpanded, collapsed: !isAgentListExpanded }"
+            >
+                <button
+                    v-for="item in visibleAgentListItems"
+                    :key="item.id"
+                    type="button"
+                    class="agent-item"
+                    :class="{ 'agent-item--active': isActiveAgent(item) }"
+                    @click="handleSelectAgentFromList(item)"
+                >
+                    {{ item.title }}
+                </button>
             </div>
-        </template>
-    </TChatSender>
+        </div>
+
+        <div v-if="showLandingPrompts && landingPrompts.length > 0" class="landing-prompts">
+            <button
+                v-for="prompt in landingPrompts"
+                :key="prompt"
+                type="button"
+                class="landing-prompt"
+                :class="{ active: inputValue === prompt }"
+                @click="handleSelectLandingPrompt(prompt)"
+            >
+                {{ prompt }}
+            </button>
+        </div>
+
+        <TChatSender
+            ref="chatSenderRef"
+            class="sender-container"
+            :value="inputValue"
+            :textarea-props="{
+                placeholder: isMobile ? i18n.placeholderMobile : i18n.placeholder,
+                autosize: { minRows: 1, maxRows: 6 },
+            }"
+            @stop="emit('stop')"
+            @send="handleSend"
+            @change="handleInput"
+            @paste="handlePaste"
+        >
+            <template #inner-header>
+                <FileList :fileList="fileList" :theme="theme" @delete="handleDeleteFile" />
+            </template>
+
+            <template #prefix>
+                <div class="sender-prefix">
+                    <TTooltip v-if="enableVoiceInput && !recording" :content="i18n.startRecord">
+                        <button type="button" class="media-button media-button--voice" @click="handleStartRecord">
+                            <img :src="voiceIcon" alt="voice" />
+                        </button>
+                    </TTooltip>
+
+                    <TTooltip v-if="enableVoiceInput && recording" :content="i18n.stopRecord">
+                        <button type="button" class="media-button media-button--recording" @click="handleStopRecord">
+                            <span class="recording-core">
+                                <span class="recording-core__dot"></span>
+                            </span>
+                        </button>
+                    </TTooltip>
+
+                    <TUpload
+                        class="sender-upload"
+                        :max="10"
+                        :multiple="true"
+                        :request-method="handleFileSelect"
+                        accept="image/*"
+                        theme="custom"
+                    >
+                        <TTooltip :content="i18n.uploadImg">
+                            <button type="button" class="media-button media-button--upload">
+                                <img :src="plusCircleIcon" alt="upload" />
+                            </button>
+                        </TTooltip>
+                    </TUpload>
+                </div>
+            </template>
+
+            <template #suffix>
+                <div class="sender-suffix">
+                    <button
+                        v-if="isStreamLoad"
+                        type="button"
+                        class="media-button media-button--send media-button--stop"
+                        @click="emit('stop')"
+                    >
+                        <CustomizedIcon
+                            class="send-icon stop"
+                            nativeIcon
+                            :showHoverBg="false"
+                            :name="theme === 'dark' ? 'pause_dark' : 'pause'"
+                        />
+                    </button>
+
+                    <button
+                        v-else-if="hasSendContent"
+                        type="button"
+                        class="media-button media-button--send"
+                        @click="handleSend(inputValue)"
+                    >
+                        <CustomizedIcon
+                            class="send-icon success"
+                            nativeIcon
+                            :showHoverBg="false"
+                            name="send_fill"
+                        />
+                    </button>
+                </div>
+            </template>
+        </TChatSender>
+    </div>
 </template>
 
 <style scoped>
-.select-area {
-    display: flex;
-    align-items: center;
-    gap: var(--td-comp-paddingLR-s);
-}
-.recording-icon:hover {
-    cursor: pointer;
-    color: var(--td-brand-color);
-}
-
-.sender-icon {
-    padding: var(--td-pop-padding-m);
-}
-
-.sender-icon.stop-icon {
-    padding: 0;
-}
-
-.sender-control-container {
-    display: flex;
-    align-items: center;
-}
-
-.sender-container {
+.sender-wrapper {
     width: 100%;
-    max-width: 800px;
+    max-width: 720px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
-.customeized-icon {
-    cursor: pointer;
+.agent-box {
+    display: flex;
+    align-items: center;
+    align-self: flex-start;
+    max-width: 100%;
+    width: fit-content;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    border-radius: 30px;
+    border: 1px solid var(--td-component-stroke);
+    background-color: #fff;
+    box-sizing: border-box;
 }
-.send-icon {
-    padding: 0 !important;
+
+.agent-menu-icon {
+    width: 18px;
+    height: auto;
+    margin-right: 6px;
+    margin-left: 4px;
     cursor: pointer;
+    transition: transform 0.3s;
+}
+
+.agent-menu-icon.active {
+    transform: rotate(90deg);
+}
+
+.agent-list {
+    display: flex;
+    align-items: center;
+    margin-left: 12px;
+    min-width: 0;
+    max-width: min(500px, calc(100vw - 160px));
+    border-left: 1px solid var(--td-component-stroke);
+    box-sizing: border-box;
+    white-space: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    touch-action: pan-x;
+    transition: max-width 0.28s ease;
+}
+
+.agent-list::-webkit-scrollbar {
+    display: none;
+}
+
+.agent-list.collapsed {
+    max-width: 116px;
+    overflow: hidden;
+}
+
+.agent-list.collapsed .agent-item {
+    display: none;
+}
+
+.agent-list.collapsed .agent-item--active {
     display: inline-flex;
     align-items: center;
     justify-content: center;
 }
+
+.agent-item {
+    flex: 0 0 auto;
+    border: 0;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    color: var(--td-text-color-primary);
+    padding: 0 16px;
+    height: auto;
+    font-size: 14px;
+    line-height: 1;
+    font-weight: 500;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.agent-item:focus,
+.agent-item:focus-visible {
+    outline: none;
+    box-shadow: none;
+}
+
+.agent-item--active {
+    color: #3c73ff;
+}
+
+.landing-prompts {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+}
+
+.landing-prompt {
+    border: 0;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.86);
+    color: #526071;
+    padding: 8px 12px;
+    font-size: 13px;
+    line-height: 1.2;
+    box-shadow: 0 10px 20px rgba(121, 173, 204, 0.1);
+    cursor: pointer;
+}
+
+.landing-prompt.active {
+    color: #248ff7;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: inset 0 0 0 1.5px rgba(36, 143, 247, 0.24);
+}
+
+.sender-container {
+    width: 100%;
+}
+
+.sender-prefix,
+.sender-suffix {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 28px;
+}
+
+.media-button {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.media-button img {
+    width: 28px;
+    height: 28px;
+    display: block;
+}
+
+.media-button--recording {
+    position: relative;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #fef4f3 0%, #ffe9e7 100%);
+    box-shadow: 0 6px 14px rgba(237, 108, 98, 0.18);
+}
+
+.media-button--recording::before {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 999px;
+    border: 1px solid rgba(237, 108, 98, 0.22);
+    animation: recording-pulse 1.4s ease-out infinite;
+}
+
+.recording-core {
+    width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    background: rgba(237, 108, 98, 0.14);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.recording-core__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    background: #ed6c62;
+    animation: recording-dot 1.2s ease-in-out infinite;
+}
+
+.send-icon {
+    width: 28px !important;
+    height: 28px !important;
+    padding: 0 !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.media-button--send {
+    line-height: 0;
+}
+
+.sender-upload {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+}
+
+:deep(.sender-upload .t-upload) {
+    display: inline-flex;
+    align-items: center;
+}
+
+:deep(.sender-upload .t-upload__trigger),
+:deep(.sender-prefix .t-tooltip__trigger),
+:deep(.sender-suffix .t-tooltip__trigger) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+}
+
+:deep(.t-chat-sender) {
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.82);
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 16px 36px rgba(109, 165, 201, 0.16);
+    padding: 4px 7px;
+}
+
 :deep(.t-chat-sender__textarea) {
-    background-color: var(--td-sender-bg);
-    border-radius: var(--td-radius-medium);
+    background: transparent;
+    border-radius: 16px;
+}
+
+:deep(.t-chat-sender__textarea textarea) {
+    color: #506174;
+    font-size: 13px;
+    line-height: 1.35;
+    min-height: 18px;
+    padding-top: 3px;
+    padding-bottom: 3px;
+}
+
+:deep(.t-chat-sender__textarea textarea::placeholder) {
+    color: #b8c0ca;
 }
 
 :deep(.t-chat-sender__footer) {
-    padding: 0px var(--td-comp-paddingLR-s);
+    padding: 0;
 }
-:deep(.sender-upload){
-    height: var(--td-comp-size-m);
+
+.is-landing :deep(.t-chat-sender) {
+    border-radius: 16px;
 }
-.recording-icon{
-    height: var(--td-comp-size-m);
-    display: inline-block;
-    margin-right: var(--td-comp-paddingLR-xs);
+
+@keyframes recording-pulse {
+    0% {
+        opacity: 0.85;
+        transform: scale(0.94);
+    }
+
+    70% {
+        opacity: 0;
+        transform: scale(1.14);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(1.14);
+    }
 }
-.recording-icon.isMobile{
-    margin-right: var(--td-comp-paddingLR-m);
+
+@keyframes recording-dot {
+    0%,
+    100% {
+        transform: scale(0.9);
+    }
+
+    50% {
+        transform: scale(1.08);
+    }
+}
+
+@media (max-width: 768px) {
+    .sender-wrapper {
+        gap: 6px;
+    }
+
+    .agent-box {
+        padding: 6px 10px;
+        margin-bottom: 6px;
+    }
+
+    .agent-box.is-mobile .agent-menu-icon {
+        width: 16px;
+        margin-right: 5px;
+        margin-left: 2px;
+    }
+
+    .agent-box.is-mobile .agent-list {
+        margin-left: 8px;
+        max-width: calc(100vw - 110px);
+    }
+
+    .agent-box.is-mobile .agent-list.collapsed {
+        max-width: 98px;
+    }
+
+    .agent-box.is-mobile .agent-item {
+        padding: 0 10px;
+        font-size: 12px;
+        line-height: 1;
+    }
+
+    .landing-prompt {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .media-button,
+    .media-button img,
+    .send-icon {
+        width: 24px;
+        height: 24px;
+    }
+
+    .recording-core {
+        width: 14px;
+        height: 14px;
+    }
+
+    .recording-core__dot {
+        width: 7px;
+        height: 7px;
+    }
+
+    :deep(.t-chat-sender) {
+        padding: 4px 6px;
+    }
+
+    :deep(.t-chat-sender__textarea textarea) {
+        font-size: 12px;
+        min-height: 16px;
+    }
 }
 </style>

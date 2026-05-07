@@ -1,6 +1,6 @@
 {
   "project": {
-    "projectName": "Tencent Cloud ADP Chat Client"
+    "projectName": "双百工程"
   },
   "header": {
     "codeRepository": "Code Repository",
@@ -23,7 +23,7 @@
     "inputPassword": "Please enter your password",
     "defaultName": "Guest",
     "welcome": "Welcome",
-    "systemName": "ADP Chat Client"
+    "systemName": "双百工程"
   },
   "operation": {
     "search": "Search",

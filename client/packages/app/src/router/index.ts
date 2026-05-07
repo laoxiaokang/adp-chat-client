@@ -11,6 +11,30 @@ const router = createRouter({
   history: createWebHashHistory(),
   routes: [
     {
+      path: '/',
+      redirect: { name: 'consult' },
+    },
+    {
+      path: '/service',
+      name: 'service',
+      component: () => import('@/pages/Home.vue'),
+    },
+    {
+      path: '/archive',
+      name: 'archive',
+      component: () => import('@/pages/Home.vue'),
+    },
+    {
+      path: '/report-upload',
+      name: 'report-upload',
+      component: () => import('@/components/ReportUpload.vue'),
+    },
+    {
+      path: '/consult/:applicationId?',
+      name: 'consult',
+      component: () => import('@/pages/Home.vue'),
+    },
+    {
       path: '/:conversationId?',
       name: 'home',
       component: () => import('@/pages/Home.vue'),
@@ -58,7 +82,7 @@ router.beforeEach(
       if (to.name !== 'login' && !isLoggedIn()) {
         return { name: 'login' }
       } else if (to.name === 'login' && isLoggedIn()) {
-        return { name: 'home' }
+        return { name: 'consult' }
       } else {
         return
       }
